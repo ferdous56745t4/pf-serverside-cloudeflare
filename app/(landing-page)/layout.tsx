@@ -37,13 +37,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+         {/* FontAwesome - Loaded in head for immediate availability to prevent flickering, but widely cached */}
+         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${hindSiliguri.variable} antialiased ${myFont.className}`}
       >
-        <head>
-           {/* FontAwesome - Loaded in head for immediate availability to prevent flickering, but widely cached */}
-           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-        </head>
         {/* Facebook Pixel Base Code */}
         <Script id="facebook-pixel" strategy="afterInteractive">
           {`
