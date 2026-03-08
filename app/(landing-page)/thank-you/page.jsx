@@ -41,6 +41,14 @@ function ThankYouContent() {
         userData.external_id = orderId;
       } catch(e) {}
 
+      // --- LTV, Profit Margin, and Customer Status ---
+      let purchaseCount = parseInt(localStorage.getItem('purchase_count') || "0");
+      const isNewCustomer = purchaseCount === 0; // If purchaseCount is 0 before this purchase, it's a new customer
+      
+      // Basic static LTV projection rule: Repeat buyers often spend ~2.5x more over a year
+      const predictedLtv = isNewCustomer ? totalValue * 1.5 : totalValue * 2.5;
+      const PRODUCT_PROFIT = 200; // Static calculation for this book for now (Price - Print Cost - Avg Ad Cost)
+
       trackPurchase(
         [productId], 
         productName, 
@@ -52,7 +60,9 @@ function ThankYouContent() {
           average_order: totalValue,
           category_name: categoryName,
           coupon_used: "No", // Update depending on your checkout logic
-          predicted_ltv: totalValue, // Simple baseline LTV equals the single order
+          predicted_ltv: predictedLtv, 
+          profit_margin: PRODUCT_PROFIT * itemQuantity, // Calculate dynamic profit
+          new_customer: isNewCustomer, // True or False flag natively supported
           shipping: shippingValue,
           shipping_cost: shippingValue,
           tax: 0, // Calculate tax if applicable
@@ -63,14 +73,13 @@ function ThankYouContent() {
         userData
       );
 
-      console.log("✅ Cloudflare Worker + Browser Pixel Purchase events fired with extended parameters and Advanced Matching!");
+      console.log("✅ Cloudflare Worker + Browser Pixel Purchase events fired with LTV, Profit & Advanced Matching!");
 
       // Custom Post-Purchase Events (Pushed to CAPI)
-      let purchaseCount = parseInt(localStorage.getItem('purchase_count') || "0");
-      purchaseCount += 1;
+      purchaseCount += 1; // Increment for the current purchase
       localStorage.setItem('purchase_count', purchaseCount.toString());
 
-      if (purchaseCount === 1) {
+      if (purchaseCount === 1) { // Now purchaseCount reflects the current state after this purchase
           trackCustomEvent('FirstTimeBuyer', totalValue, currency || "BDT");
       } else {
           trackCustomEvent('ReturningCustomer', totalValue, currency || "BDT");

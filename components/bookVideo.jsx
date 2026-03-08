@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { trackCustomEvent } from "@/lib/fbEvents";
 
 export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const playerRef = useRef(null);
+  const playTrackedRef = useRef(false);
+  const watch50TrackedRef = useRef(false);
+  const progressIntervalRef = useRef(null);
 
   // Load YouTube API
   useEffect(() => {
@@ -40,6 +44,7 @@ export default function App() {
 
     return () => {
       // Cleanup player on unmount
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       if (playerRef.current && playerRef.current.destroy) {
         try {
             playerRef.current.destroy();
@@ -55,8 +60,41 @@ export default function App() {
     
     if (event.data === window.YT.PlayerState.PLAYING) {
       setIsPlaying(true);
-    } else if (event.data === window.YT.PlayerState.PAUSED) {
+      
+      // Fire Video_Play
+      if (!playTrackedRef.current) {
+         playTrackedRef.current = true;
+         trackCustomEvent('Video_Play', 0, 'BDT', {
+             content_name: 'Book Overview Video',
+             content_type: 'video',
+             video_id: 'f__152v8rfE'
+         });
+      }
+
+      // Track Video_Watch_50 interval
+      if (!watch50TrackedRef.current && playerRef.current.getDuration) {
+         progressIntervalRef.current = setInterval(() => {
+            const currentTime = playerRef.current.getCurrentTime();
+            const duration = playerRef.current.getDuration();
+            
+            if (duration > 0 && (currentTime / duration) >= 0.5 && !watch50TrackedRef.current) {
+                watch50TrackedRef.current = true;
+                clearInterval(progressIntervalRef.current);
+                
+                trackCustomEvent('Video_Watch_50', 0, 'BDT', {
+                   content_name: 'Book Overview Video',
+                   content_type: 'video',
+                   video_id: 'f__152v8rfE'
+                });
+            }
+         }, 1000);
+      }
+
+    } else if (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED) {
       setIsPlaying(false);
+      if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+      }
     }
   };
 
