@@ -26,16 +26,44 @@ function ThankYouContent() {
       const itemPrice = parseFloat(price || "0");
       const itemQuantity = parseInt(quantity || "1", 10);
 
+      // Attempt to retrieve saved user data for Advanced Matching
+      let userData = {};
+      try {
+        const savedPhone = localStorage.getItem("billing_phone");
+        const savedName = localStorage.getItem("billing_name");
+        if (savedPhone) userData.ph = savedPhone.trim();
+        if (savedName) {
+           const nameParts = savedName.trim().split(" ");
+           if (nameParts.length > 0) userData.fn = nameParts[0];
+           if (nameParts.length > 1) userData.ln = nameParts.slice(1).join(" ");
+        }
+        // If external ID is provided as order ID
+        userData.external_id = orderId;
+      } catch(e) {}
+
       trackPurchase(
         [productId], 
         productName, 
         totalValue, 
         currency || "BDT", 
         itemQuantity, 
-        orderId
+        orderId,
+        {
+          average_order: totalValue,
+          category_name: categoryName,
+          coupon_used: "No", // Update depending on your checkout logic
+          predicted_ltv: totalValue, // Simple baseline LTV equals the single order
+          shipping: shippingValue,
+          shipping_cost: shippingValue,
+          tax: 0, // Calculate tax if applicable
+          total: totalValue,
+          transactions_count: 1, // Single transaction event
+          // remaining parameters (traffic_source, event_url, etc.) are automatically handled by the helper logic
+        },
+        userData
       );
 
-      console.log("✅ Cloudflare Worker + Browser Pixel Purchase events fired on Thank You page");
+      console.log("✅ Cloudflare Worker + Browser Pixel Purchase events fired with extended parameters and Advanced Matching!");
 
       // Custom Post-Purchase Events (Pushed to CAPI)
       let purchaseCount = parseInt(localStorage.getItem('purchase_count') || "0");

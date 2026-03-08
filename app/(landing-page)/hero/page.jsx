@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { XCircle, MessageCircle, Facebook } from "lucide-react"; 
-import { trackViewContent, trackAddToCart, trackInitiateCheckout } from "@/lib/fbEvents";
+import { trackViewContent, trackAddToCart, trackInitiateCheckout, trackCustomEvent } from "@/lib/fbEvents";
 
 // --- FAKE 404 COMPONENT (The Trap) ---
 // This mimics a standard "Page Not Found" to fool the scammer
@@ -53,7 +53,27 @@ const HeroSection = () => {
   
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const sectionRef = useRef(null);
-  const hasAddedToCart = useRef(false); 
+  const hasAddedToCart = useRef(false);
+
+  // --- HELPER FOR CURRENT ADVANCED PARAMETERS ---
+  const getAdvancedMatchingData = () => {
+      let ud = {
+         country: "bd",
+         st: "dhaka",
+         ct: "dhaka"
+      };
+      
+      const p = formData.number || localStorage.getItem("billing_phone");
+      if (p) ud.ph = p.trim();
+      
+      const n = formData.name || localStorage.getItem("billing_name");
+      if (n) {
+         const np = n.trim().split(" ");
+         if (np.length > 0) ud.fn = np[0];
+         if (np.length > 1) ud.ln = np.slice(1).join(" ");
+      }
+      return ud;
+  };
 
   // --- 1. INITIAL LOAD: IP FETCH & BAN CHECK ---
   useEffect(() => {
@@ -119,6 +139,67 @@ const HeroSection = () => {
     performChecks();
   }, []);
 
+  // --- SCROLL & TIME ENGAGEMENT TRACKING ---
+  useEffect(() => {
+    // 25 Seconds on page
+    const timer = setTimeout(() => {
+        trackCustomEvent("25_sec_onpage", PRODUCT_PRICE, CURRENCY, {
+             category_name: PRODUCT_CATEGORY,
+             content_name: PRODUCT_NAME,
+             content_type: "product",
+             content_ids: [PRODUCT_ID],
+             post_id: POST_ID.toString(),
+             post_type: POST_TYPE,
+             tags: ["f-commerce", "book"]
+        }, getAdvancedMatchingData());
+    }, 25000);
+
+    // Scroll depth
+    const handleScroll = () => {
+      // Calculate scroll percentage
+      const scrollHeight = Math.max(
+        document.body.scrollHeight, document.documentElement.scrollHeight,
+        document.body.offsetHeight, document.documentElement.offsetHeight,
+        document.body.clientHeight, document.documentElement.clientHeight
+      ) - window.innerHeight;
+      
+      const scrollPercent = scrollHeight > 0 ? (window.scrollY / scrollHeight) * 100 : 0;
+      
+      if (scrollPercent >= 50 && !window.hasScrolled50) {
+        window.hasScrolled50 = true;
+        trackCustomEvent("scroll_50", PRODUCT_PRICE, CURRENCY, {
+             category_name: PRODUCT_CATEGORY,
+             content_name: PRODUCT_NAME,
+             content_type: "product",
+             content_ids: [PRODUCT_ID],
+             post_id: POST_ID.toString(),
+             post_type: POST_TYPE,
+             tags: ["f-commerce", "book"]
+        }, getAdvancedMatchingData());
+      }
+      
+      if (scrollPercent >= 90 && !window.hasScrolled90) {
+        window.hasScrolled90 = true;
+        trackCustomEvent("scroll_90", PRODUCT_PRICE, CURRENCY, {
+             category_name: PRODUCT_CATEGORY,
+             content_name: PRODUCT_NAME,
+             content_type: "product",
+             content_ids: [PRODUCT_ID],
+             post_id: POST_ID.toString(),
+             post_type: POST_TYPE,
+             tags: ["f-commerce", "book"]
+        }, getAdvancedMatchingData());
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+       clearTimeout(timer);
+       window.removeEventListener("scroll", handleScroll);
+    };
+  }, [formData]);
+
   // --- ABANDONED CART LOGIC ---
   useEffect(() => {
     // Basic guard: don't save if empty or missing device ID
@@ -166,7 +247,10 @@ const HeroSection = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && !hasAddedToCart.current) {
-            trackAddToCart([PRODUCT_ID], PRODUCT_NAME, PRODUCT_PRICE, CURRENCY);
+            trackAddToCart([PRODUCT_ID], PRODUCT_NAME, PRODUCT_PRICE, CURRENCY, {
+              category_name: PRODUCT_CATEGORY,
+              tags: ["f-commerce", "book"],
+            });
             hasAddedToCart.current = true;
           }
         });
@@ -179,7 +263,28 @@ const HeroSection = () => {
 
   const handleBeginCheckout = () => {
     if (!checkoutStarted) {
-      trackInitiateCheckout([PRODUCT_ID], PRODUCT_NAME, PRODUCT_PRICE, CURRENCY, 1);
+      // Build advanced matching data based on what they might have typed so far
+      let userData = {
+         country: "bd", // Default to Bangladesh based on typical f-commerce behavior
+         st: "dhaka", // Often default for inside/outside dhaka splits until address is typed
+         ct: "dhaka"
+      };
+      
+      if (formData.number) {
+        userData.ph = formData.number.trim();
+      }
+      if (formData.name) {
+         const nameParts = formData.name.trim().split(" ");
+         if (nameParts.length > 0) userData.fn = nameParts[0];
+         if (nameParts.length > 1) userData.ln = nameParts.slice(1).join(" ");
+      }
+
+      trackInitiateCheckout([PRODUCT_ID], PRODUCT_NAME, PRODUCT_PRICE, CURRENCY, 1, {
+         category_name: PRODUCT_CATEGORY,
+         tags: ["f-commerce", "book"],
+         subtotal: PRODUCT_PRICE
+      }, userData);
+      
       setCheckoutStarted(true);
     }
   };
@@ -238,6 +343,12 @@ const HeroSection = () => {
       }
 
       if (!response.ok || !result.success) throw new Error(result.message);
+
+      // Save billing details for Advanced Matching on the Thank You page
+      try {
+        localStorage.setItem("billing_name", name);
+        localStorage.setItem("billing_phone", number);
+      } catch (e) {}
 
       // --- SEND CONFIRMATION SMS ---
       try {
