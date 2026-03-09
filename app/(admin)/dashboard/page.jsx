@@ -2144,8 +2144,8 @@ export default function App() {
                   Are you sure you want to send <strong className="text-white bg-gray-800 px-1 py-0.5 rounded border border-gray-700">{bulkOrdersCount}</strong> orders to the Steadfast Courier right now?
                   <br />
                   <br />
-                  <span className="text-xs text-green-400">
-                    This will dispatch the orders and change their status to "In Review".
+                  <span className="text-xs text-red-400">
+                    This will dispatch the orders and change their status to "Shipped".        
                   </span>
                 </p>
                 <div className="flex gap-3 w-full mt-4">

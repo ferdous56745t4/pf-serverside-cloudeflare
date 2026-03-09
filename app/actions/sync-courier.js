@@ -13,6 +13,7 @@ const mapSteadfastStatus = (steadfastStatus) => {
 
   switch (lowerStatus) {
     case 'pending':
+      return 'Shipped';
     case 'in_review':
       return 'In Review';
     case 'delivered':

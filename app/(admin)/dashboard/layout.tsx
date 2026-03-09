@@ -20,8 +20,8 @@ export default async function RootLayout({
   const initialCollapsed = cookieStore.get("sidebarCollapsed")?.value === "true";
 
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.className} bg-gray-900 text-gray-100`}>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${inter.className} bg-gray-900 text-gray-100`} suppressHydrationWarning>
         {/* FLEX CONTAINER FOR SIDEBAR + CONTENT */}
         <div className="flex h-screen overflow-hidden">
           

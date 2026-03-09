@@ -116,7 +116,8 @@ export const trackPurchase = (
   extraParams: any = {},
   userData: { ph?: string; fn?: string; ln?: string; em?: string } = {}
 ) => {
-  const eventId = generateEventId();
+  // Use orderId for rock-solid deduplication on Facebook's end
+  const eventId = orderId ? `purchase_${orderId}` : generateEventId();
   const now = new Date();
   
   const customData = {
