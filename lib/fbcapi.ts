@@ -47,19 +47,6 @@ export const firePixelEvent = (eventName: string, data: any, eventId: string) =>
             ...data,
             eventId: eventId
         });
-
-        // 🚨 Fallback: Also fire fbq directly if it's available on the page!
-        // This ensures the Pixel Helper sees the event even if you haven't set up GTM Triggers for it.
-        // Since we supply eventID, Facebook will natively DEDUPLICATE any double-firing.
-        const sendFbq = () => {
-             if ('fbq' in window && typeof (window as any).fbq === 'function') {
-                 (window as any).fbq('track', eventName, data, { eventID: eventId });
-             }
-        };
-
-        sendFbq();
-        // Try again a second later to catch slow GTM pixel injects
-        setTimeout(sendFbq, 1500);
     }
 };
   
