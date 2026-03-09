@@ -21,11 +21,45 @@ export const generateEventId = (): string => {
 export const firePixelEvent = (eventName: string, data: any, eventId: string) => {
     if (typeof window !== 'undefined') {
         const dataLayer = (window as any).dataLayer = (window as any).dataLayer || [];
+        
+        // Push standard GA4 ecommerce payload for Purchases (for standard GTM setups)
+        if (eventName === 'Purchase') {
+            dataLayer.push({ ecommerce: null }); // Clear previous
+            dataLayer.push({
+                event: "purchase", // Standard GTM trigger name
+                ecommerce: {
+                    currency: data.currency,
+                    value: data.value,
+                    transaction_id: data.order_id || eventId,
+                    items: data.contents?.map((item: any) => ({
+                        item_id: item.id,
+                        item_name: data.content_name || 'Product',
+                        price: item.item_price,
+                        quantity: item.quantity
+                    }))
+                }
+            });
+        }
+
+        // Exact match Custom Event push
         dataLayer.push({
             event: eventName,
             ...data,
             eventId: eventId
         });
+
+        // 🚨 Fallback: Also fire fbq directly if it's available on the page!
+        // This ensures the Pixel Helper sees the event even if you haven't set up GTM Triggers for it.
+        // Since we supply eventID, Facebook will natively DEDUPLICATE any double-firing.
+        const sendFbq = () => {
+             if ('fbq' in window && typeof (window as any).fbq === 'function') {
+                 (window as any).fbq('track', eventName, data, { eventID: eventId });
+             }
+        };
+
+        sendFbq();
+        // Try again a second later to catch slow GTM pixel injects
+        setTimeout(sendFbq, 1500);
     }
 };
   

@@ -20,6 +20,7 @@ function ThankYouContent() {
     const quantity = searchParams.get("quantity");
 
       // --- Prevent duplicate tracking on page reload ---
+      /*
       const trackedOrders = JSON.parse(localStorage.getItem('tracked_orders') || '[]');
       if (trackedOrders.includes(orderId)) {
         console.log("Purchase already tracked for order ID:", orderId);
@@ -29,6 +30,7 @@ function ThankYouContent() {
       // Mark order as tracked IMMEDIATELY to prevent React StrictMode race conditions
       trackedOrders.push(orderId);
       localStorage.setItem('tracked_orders', JSON.stringify(trackedOrders));
+      */
 
       const totalValue = parseFloat(total);
       const shippingValue = parseFloat(shippingCost || "0");
