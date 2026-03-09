@@ -21,6 +21,13 @@ function ThankYouContent() {
 
     // --- Fire GTM Purchase event only if we have the necessary data ---
     if (orderId && total) {
+      // --- Prevent duplicate tracking on page reload ---
+      const trackedOrders = JSON.parse(localStorage.getItem('tracked_orders') || '[]');
+      if (trackedOrders.includes(orderId)) {
+        console.log("Purchase already tracked for order ID:", orderId);
+        return; // Skip tracking if already fired
+      }
+
       const totalValue = parseFloat(total);
       const shippingValue = parseFloat(shippingCost || "0");
       const itemPrice = parseFloat(price || "0");
@@ -91,6 +98,10 @@ function ThankYouContent() {
       if (totalValue >= 900) {
           trackCustomEvent('BigWhale', totalValue, currency || "BDT");
       }
+
+      // Mark order as tracked
+      trackedOrders.push(orderId);
+      localStorage.setItem('tracked_orders', JSON.stringify(trackedOrders));
     }
   }, [searchParams]);
 
