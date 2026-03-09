@@ -1,13 +1,35 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { orders, partialOrders } from '@/lib/db/schema';
-import { eq, or } from 'drizzle-orm';
+import { eq, or, and, not, inArray } from 'drizzle-orm';
 import { sendConfirmationSMS } from '@/lib/smsProvider';
 
 export async function POST(request) {
   try {
     const data = await request.json();
     
+    // ======== DUPLICATE ORDER PREVENTION ========
+    if (data.number) {
+      const existingActiveOrder = await db.select()
+        .from(orders)
+        .where(
+          and(
+            eq(orders.number, data.number),
+            not(inArray(orders.status, ['Delivered', 'Cancelled', 'Returned', 'Abandoned', 'Fake']))
+          )
+        )
+        .limit(1);
+
+      if (existingActiveOrder.length > 0) {
+        return NextResponse.json({ 
+          success: false, 
+          reason: "active_order_exists",
+          message: "An active order already exists for this phone number." 
+        }, { status: 409 });
+      }
+    }
+    // ============================================
+
     const orderId = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
     
     const inserted = await db.insert(orders).values({

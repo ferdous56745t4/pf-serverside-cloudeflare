@@ -19,12 +19,13 @@ export const generateEventId = (): string => {
 };
   
 export const firePixelEvent = (eventName: string, data: any, eventId: string) => {
-    if (typeof window !== 'undefined' && 'fbq' in window && typeof window.fbq === 'function') {
-        const fbq = window.fbq as any;
-        fbq('track', eventName, data, { eventID: eventId });
-    } else {
-        // Retry logic if standard facebook tracking isn't loaded yet
-        setTimeout(() => firePixelEvent(eventName, data, eventId), 500);
+    if (typeof window !== 'undefined') {
+        const dataLayer = (window as any).dataLayer = (window as any).dataLayer || [];
+        dataLayer.push({
+            event: eventName,
+            ...data,
+            eventId: eventId
+        });
     }
 };
   
