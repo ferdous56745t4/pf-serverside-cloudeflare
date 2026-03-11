@@ -1057,6 +1057,9 @@ export default function App() {
   const [isOrderIdsModalOpen, setIsOrderIdsModalOpen] = useState(false);
   const [orderIdsText, setOrderIdsText] = useState("");
 
+  // Pinned / Working Row Highlight State
+  const [pinnedOrderId, setPinnedOrderId] = useState(null);
+
   // COLLAPSIBLE STATE (Only for the Status Widgets now)
   const [isStatusWidgetOpen, setIsStatusWidgetOpen] = useState(false);
   // Calculate Status Counts
@@ -1946,8 +1949,13 @@ export default function App() {
                   return (
                     <tr
                       key={order.id}
-                      className={`hover:bg-gray-700/40 transition-colors ${
-                        index % 2 === 0 ? "bg-gray-700/25" : ""
+                      onClick={() => setPinnedOrderId(prev => prev === order.id ? null : order.id)}
+                      className={`cursor-pointer transition-all duration-300 ${
+                        pinnedOrderId === order.id
+                          ? `bg-gray-700/60 ${index % 2 === 0 ? "" : ""}`
+                          : pinnedOrderId !== null
+                          ? "opacity-30 grayscale hover:opacity-50"
+                          : `hover:bg-gray-700/40 ${index % 2 === 0 ? "bg-gray-700/25" : ""}`
                       }`}
                     >
                       <td className="whitespace-nowrap py-4 px-4 text-sm font-mono text-blue-400">
@@ -1957,7 +1965,7 @@ export default function App() {
                         <div className="flex items-center gap-2">
                            {/* VIEW BUTTON WITH INDICATOR */}
                            <button
-                             onClick={() => setSelectedOrder(order)}
+                             onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
                              className="p-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-blue-600 hover:text-white transition-all relative"
                              title="View Details"
                            >
@@ -1971,7 +1979,7 @@ export default function App() {
                            </button>
                            {/* NOTE BUTTON WITH INDICATOR */}
                            <button
-                             onClick={() => openNoteModal(order)}
+                             onClick={(e) => { e.stopPropagation(); openNoteModal(order); }}
                              className={`p-1.5 rounded-lg transition-all border ${
                                order.note
                                  ? "bg-yellow-500 text-black border-yellow-400 hover:bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.5)]"
@@ -2067,7 +2075,7 @@ export default function App() {
                       </td>
 
                       {/* CALL STATUS COLUMN */}
-                      <td className="whitespace-nowrap py-4 px-4 text-sm">
+                      <td className="whitespace-nowrap py-4 px-4 text-sm" onClick={(e) => e.stopPropagation()}>
                         <CallStatusDropdown
                           currentStatus={order.callStatus}
                           onStatusChange={(val) =>
@@ -2077,7 +2085,7 @@ export default function App() {
                       </td>
 
                       {/* ACTIONS COLUMN */}
-                      <td className="whitespace-nowrap py-4 px-4 text-sm">
+                      <td className="whitespace-nowrap py-4 px-4 text-sm" onClick={(e) => e.stopPropagation()}>
                         <div className="flex flex-col gap-2 relative min-w-[100px]">
                            <ActionDropdown
                               currentStatus={order.status}

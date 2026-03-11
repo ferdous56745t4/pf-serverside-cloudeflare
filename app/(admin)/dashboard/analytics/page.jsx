@@ -375,8 +375,12 @@ export default function AnalyticsDashboard() {
     const hourlyCounts = new Array(24).fill(0);
 
     // --- CHART DATA SKELETON ---
+    const endDateForChart = (dateRange && dateRange.to) 
+       ? startOfDay(dateRange.to) 
+       : startOfDay(new Date());
+
     const chartDataArr = Array.from({ length: timeRangeInDays }, (_, i) => {
-      const d = subDays(today, timeRangeInDays - 1 - i);
+      const d = subDays(endDateForChart, timeRangeInDays - 1 - i);
       return { 
         date: format(d, 'MMM dd'), 
         fullDate: d, 
@@ -447,7 +451,7 @@ export default function AnalyticsDashboard() {
       }
 
       // B. Shipped Logic 
-      if (order.status === 'Shipped' && isCreatedInRange && isInDateRange) {
+      if (['In Review', 'Shipped', 'Delivered', 'Returned'].includes(order.status) && isCreatedInRange && isInDateRange) {
         rangeShippedCount++;
         const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, createdDate));
         if (dayStat) dayStat.shipped += 1;
