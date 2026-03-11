@@ -68,7 +68,7 @@ export async function sendToSteadfast(orderId) {
           consignmentId: result.consignment.consignment_id.toString(),
           trackingCode: result.consignment.tracking_code,
           courierStatus: result.consignment.status || 'pending',
-          status: 'Shipped' // Automatically move internal status to Shipped
+          status: 'In Review' // Automatically move internal status to In Review
         })
         .where(eq(orders.orderId, orderId));
 
@@ -210,7 +210,7 @@ export async function sendBulkToSteadfast(orderIds) {
               consignmentId: update.consignmentId,
               trackingCode: update.trackingCode,
               courierStatus: 'pending', // Bulk response does not yield initial status string in success object
-              status: 'Shipped'
+              status: 'In Review'
           })
           .where(eq(orders.orderId, update.orderId));
     }));

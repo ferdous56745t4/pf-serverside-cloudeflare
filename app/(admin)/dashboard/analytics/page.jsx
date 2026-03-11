@@ -391,8 +391,6 @@ export default function AnalyticsDashboard() {
     validOrders.forEach(order => {
       // 1. Parsing Dates
       const createdDate = new Date(order.createdAt);
-      const shippedDate = order.shippedAt ? new Date(order.shippedAt) : null;
-      const deliveredDate = order.deliveredAt ? new Date(order.deliveredAt) : null;
       
       const isCreatedInRange = createdDate >= cutoffDate;
       
@@ -449,16 +447,16 @@ export default function AnalyticsDashboard() {
       }
 
       // B. Shipped Logic 
-      if (shippedDate && shippedDate >= cutoffDate && isInDateRange) {
+      if (order.status === 'Shipped' && isCreatedInRange && isInDateRange) {
         rangeShippedCount++;
-        const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, shippedDate));
+        const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, createdDate));
         if (dayStat) dayStat.shipped += 1;
       }
 
       // C. Delivered Logic 
-      if (deliveredDate && deliveredDate >= cutoffDate && isInDateRange) {
+      if (order.status === 'Delivered' && isCreatedInRange && isInDateRange) {
         rangeDeliveredCount++;
-        const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, deliveredDate));
+        const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, createdDate));
         if (dayStat) dayStat.delivered += 1;
       }
 

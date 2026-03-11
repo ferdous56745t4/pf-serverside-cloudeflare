@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { orders, stocks } from '@/lib/db/schema';
+import { eq, sql } from 'drizzle-orm';
 
 // Helper function to map steadfast status to internal dashboard status.
 // You may need to tweak this map as you learn the exact steadfast string literals.
@@ -10,20 +10,24 @@ const mapSteadfastStatus = (steadfastStatus) => {
   const lowerStatus = steadfastStatus.toLowerCase();
 
   switch (lowerStatus) {
-    case 'pending':
-      return 'Shipped';
-    case 'delivered':
-      return 'Delivered';
-    case 'cancelled':
-      return 'Cancelled';
-    case 'returned':
-      return 'Returned';
     case 'in_review':
       return 'In Review';
+    case 'pending':
     case 'shipped':
     case 'in_transit':
     case 'out_for_delivery':
+    case 'hold':
       return 'Shipped';
+    case 'delivered':
+    case 'partial_delivered':
+    case 'delivered_approval_pending':
+    case 'partial_delivered_approval_pending':
+      return 'Delivered';
+    case 'cancelled':
+    case 'cancelled_approval_pending':
+      return 'Cancelled';
+    case 'returned':
+      return 'Returned';
     default:
       // If we don't recognize the Steadfast status, we don't map it.
       return null;
@@ -49,18 +53,39 @@ export async function POST(request) {
     const dbStatus = mapSteadfastStatus(delivery_status);
 
     if (dbStatus) {
-      // 3. Update the matching order in your database using Drizzle
-      const updateResult = await db
-        .update(orders)
-        .set({ 
-          status: dbStatus, 
-          courierStatus: delivery_status // Also save the exact courier string for tracking
-        })
-        .where(eq(orders.consignmentId, consignment_id.toString()))
-        .returning({ id: orders.id, orderId: orders.orderId });
+      const [existingOrder] = await db.select().from(orders).where(eq(orders.consignmentId, consignment_id.toString()));
 
-      if (updateResult.length > 0) {
-        console.log(`Steadfast Webhook: Order ${updateResult[0].orderId} updated to ${dbStatus}`);
+      if (existingOrder) {
+        const oldStatus = existingOrder.status;
+
+        // Stock adjustment logic
+        if (dbStatus === 'Shipped' && oldStatus !== 'Shipped') {
+          await db.update(stocks)
+            .set({ quantity: sql`${stocks.quantity} - 1` })
+            .where(eq(stocks.name, 'Book'));
+        } else if (dbStatus === 'Returned' && oldStatus !== 'Returned') {
+          await db.update(stocks)
+            .set({ quantity: sql`${stocks.quantity} + 1` })
+            .where(eq(stocks.name, 'Book'));
+        } else if (dbStatus === 'Cancelled' && oldStatus !== 'Cancelled' && (oldStatus === 'Shipped' || oldStatus === 'Delivered')) {
+          await db.update(stocks)
+            .set({ quantity: sql`${stocks.quantity} + 1` })
+            .where(eq(stocks.name, 'Book'));
+        }
+
+        // 3. Update the matching order in your database using Drizzle
+        const updateResult = await db
+          .update(orders)
+          .set({ 
+            status: dbStatus, 
+            courierStatus: delivery_status // Also save the exact courier string for tracking
+          })
+          .where(eq(orders.id, existingOrder.id))
+          .returning({ id: orders.id, orderId: orders.orderId });
+
+        if (updateResult.length > 0) {
+          console.log(`Steadfast Webhook: Order ${updateResult[0].orderId} updated to ${dbStatus}`);
+        }
       } else {
         console.log(`Steadfast Webhook: Consignment ID ${consignment_id} not found in database.`);
       }

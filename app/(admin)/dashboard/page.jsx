@@ -1043,6 +1043,7 @@ export default function App() {
   const [isCourierModalOpen, setIsCourierModalOpen] = useState(false);
   const [courierOrder, setCourierOrder] = useState(null);
   const [isSendingCourier, setIsSendingCourier] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Status filter state
   const [statusFilter, setStatusFilter] = useState(null);
@@ -1838,6 +1839,8 @@ export default function App() {
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
              <button
                onClick={async () => {
+                 if (isSyncing) return;
+                 setIsSyncing(true);
                  try {
                    const { syncActiveCouriers } = await import('@/app/actions/sync-courier');
                    const res = await syncActiveCouriers();
@@ -1848,13 +1851,25 @@ export default function App() {
                  } catch (e) {
                    console.error(e);
                    alert("Failed to sync couriers");
+                 } finally {
+                   setIsSyncing(false);
                  }
                }}
-               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap"
+               disabled={isSyncing}
+               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed group"
                title="Sync Real-Time Delivery Status for Active Orders"
              >
-               <RefreshCw size={14} className="group-hover:animate-spin" />
-               Sync Courier Status
+               {isSyncing ? (
+                 <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Syncing...
+                 </>
+               ) : (
+                 <>
+                  <RefreshCw size={14} className="group-hover:animate-spin" />
+                  Sync Courier Status
+                 </>
+               )}
              </button>
              
              {statusFilter === "In Review" && (

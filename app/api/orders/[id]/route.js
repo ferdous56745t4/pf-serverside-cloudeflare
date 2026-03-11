@@ -23,14 +23,20 @@ export async function PATCH(request, props) {
       const oldStatus = existingOrder.status;
 
       // 2. Default Book stock interaction mapped to the specific state shifts
-      // If it changed TO Delivered from something else
-      if (status === 'Delivered' && oldStatus !== 'Delivered') {
+      // If it changed TO Shipped from something else
+      if (status === 'Shipped' && oldStatus !== 'Shipped') {
         await db.update(stocks)
           .set({ quantity: sql`${stocks.quantity} - 1` })
           .where(eq(stocks.name, 'Book'));
       }
       // If it changed TO Returned from something else
       else if (status === 'Returned' && oldStatus !== 'Returned') {
+         await db.update(stocks)
+          .set({ quantity: sql`${stocks.quantity} + 1` })
+          .where(eq(stocks.name, 'Book'));
+      }
+      // If it changed TO Cancelled from something else
+      else if (status === 'Cancelled' && oldStatus !== 'Cancelled' && (oldStatus === 'Shipped' || oldStatus === 'Delivered')) {
          await db.update(stocks)
           .set({ quantity: sql`${stocks.quantity} + 1` })
           .where(eq(stocks.name, 'Book'));

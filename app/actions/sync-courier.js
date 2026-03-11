@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { orders } from '@/lib/db/schema';
-import { eq, inArray, and, isNotNull, not } from 'drizzle-orm';
+import { orders, stocks } from '@/lib/db/schema';
+import { eq, inArray, and, isNotNull, not, sql } from 'drizzle-orm';
 
 const STEADFAST_API_URL = 'https://portal.packzy.com/api/v1';
 
@@ -12,21 +12,24 @@ const mapSteadfastStatus = (steadfastStatus) => {
   const lowerStatus = steadfastStatus.toLowerCase();
 
   switch (lowerStatus) {
-    case 'pending':
-      return 'Shipped';
     case 'in_review':
       return 'In Review';
-    case 'delivered':
-    case 'partial_delivered':
-      return 'Delivered';
-    case 'cancelled':
-      return 'Cancelled';
-    case 'returned':
-      return 'Returned';
+    case 'pending':
     case 'shipped':
     case 'in_transit':
     case 'out_for_delivery':
+    case 'hold':
       return 'Shipped';
+    case 'delivered':
+    case 'partial_delivered':
+    case 'delivered_approval_pending':
+    case 'partial_delivered_approval_pending':
+      return 'Delivered';
+    case 'cancelled':
+    case 'cancelled_approval_pending':
+      return 'Cancelled';
+    case 'returned':
+      return 'Returned';
     default:
       return null;
   }
@@ -96,6 +99,23 @@ export async function syncActiveCouriers() {
           const newSysStatus = mapSteadfastStatus(result.delivery_status);
           
           if (newSysStatus && newSysStatus !== order.status) {
+            const oldStatus = order.status;
+
+            // Stock adjustment logic
+            if (newSysStatus === 'Shipped' && oldStatus !== 'Shipped') {
+              await db.update(stocks)
+                .set({ quantity: sql`${stocks.quantity} - 1` })
+                .where(eq(stocks.name, 'Book'));
+            } else if (newSysStatus === 'Returned' && oldStatus !== 'Returned') {
+              await db.update(stocks)
+                .set({ quantity: sql`${stocks.quantity} + 1` })
+                .where(eq(stocks.name, 'Book'));
+            } else if (newSysStatus === 'Cancelled' && oldStatus !== 'Cancelled' && (oldStatus === 'Shipped' || oldStatus === 'Delivered')) {
+              await db.update(stocks)
+                .set({ quantity: sql`${stocks.quantity} + 1` })
+                .where(eq(stocks.name, 'Book'));
+            }
+
             await db.update(orders)
               .set({
                 status: newSysStatus,
