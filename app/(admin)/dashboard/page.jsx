@@ -600,8 +600,14 @@ const CourierModal = ({ isOpen, onClose, onConfirm, order, isSending }) => {
 };
 
 // --- GENERIC ORDER IDS MODAL ---
-const OrderIdsModal = ({ isOpen, onClose, orderIdsText }) => {
+const OrderIdsModal = ({ isOpen, onClose, orderIdsText, title, subtitle }) => {
+  const [copied, setCopied] = React.useState(false);
   if (!isOpen) return null;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(orderIdsText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
     <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
@@ -612,8 +618,8 @@ const OrderIdsModal = ({ isOpen, onClose, orderIdsText }) => {
               <Package size={20} />
             </div>
             <div>
-              <h3 className="text-white font-bold text-lg">In Review Consignment IDs</h3>
-              <p className="text-xs text-gray-400">Comma-separated list</p>
+              <h3 className="text-white font-bold text-lg">{title || 'Consignment IDs'}</h3>
+              <p className="text-xs text-gray-400">{subtitle || 'Comma-separated list'}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -629,13 +635,14 @@ const OrderIdsModal = ({ isOpen, onClose, orderIdsText }) => {
           />
           <div className="mt-6">
             <button
-              onClick={() => {
-                navigator.clipboard.writeText(orderIdsText);
-                alert("Order IDs copied to clipboard!");
-              }}
-              className="w-full py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 font-bold transition-colors text-sm"
+              onClick={handleCopy}
+              className={`w-full py-2.5 font-bold transition-all text-sm rounded-lg flex items-center justify-center gap-2 ${
+                copied
+                  ? 'bg-green-600 text-white'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+              }`}
             >
-              Copy to Clipboard
+              {copied ? <><Check size={16} /> Copied!</> : 'Copy to Clipboard'}
             </button>
           </div>
         </div>
@@ -1061,6 +1068,7 @@ export default function App() {
   // In Review Order IDs Modal State
   const [isOrderIdsModalOpen, setIsOrderIdsModalOpen] = useState(false);
   const [orderIdsText, setOrderIdsText] = useState("");
+  const [orderIdsModalConfig, setOrderIdsModalConfig] = useState({ title: 'In Review Consignment IDs', subtitle: 'Comma-separated list' });
 
   // Pinned / Working Row Highlight State
   const [pinnedOrderId, setPinnedOrderId] = useState(null);
@@ -1276,9 +1284,12 @@ export default function App() {
                ? { ...o, trackingCode: data.trackingCode, status: "In Review" } 
                : o
           ));
-          alert(`Successfully sent to Steadfast Courier!\nTracking Code: ${data.trackingCode}`);
           setIsCourierModalOpen(false);
           setCourierOrder(null);
+          // Show success popup with the tracking/consignment ID for easy copying
+          setOrderIdsText(data.trackingCode || orderId);
+          setOrderIdsModalConfig({ title: '✅ Courier Sent Successfully!', subtitle: 'Copy the tracking code below' });
+          setIsOrderIdsModalOpen(true);
        } else {
           alert(`Failed to send to courier: ${data.message || 'Unknown error'}`);
        }
@@ -1320,9 +1331,6 @@ export default function App() {
        const response = await sendBulkToSteadfast(orderIds);
        
        if (response.success) {
-           // Provide feedback on partial failures vs full success
-           alert(response.message);
-           
            // Update states of locally tracked successful updates
            const updateMap = new Map();
            response.successfulUpdates.forEach(u => updateMap.set(u.orderId, u));
@@ -1340,6 +1348,16 @@ export default function App() {
                }
                return o;
            }));
+
+           // Show popup with all consignment IDs for easy copying
+           const consignmentIds = response.successfulUpdates.map(u => u.consignmentId).join(', ');
+           setOrderIdsText(consignmentIds || 'No IDs returned');
+           const failInfo = response.errorCount > 0 ? ` (${response.errorCount} failed)` : '';
+           setOrderIdsModalConfig({
+             title: `✅ Bulk Sent: ${response.successCount} Orders${failInfo}`,
+             subtitle: 'Copy the consignment IDs below'
+           });
+           setIsOrderIdsModalOpen(true);
        } else {
            alert(`Failed to send bulk courier dispatch: ${response.message}`);
        }
@@ -1632,6 +1650,8 @@ export default function App() {
         isOpen={isOrderIdsModalOpen}
         onClose={() => setIsOrderIdsModalOpen(false)}
         orderIdsText={orderIdsText}
+        title={orderIdsModalConfig.title}
+        subtitle={orderIdsModalConfig.subtitle}
       />
       {selectedOrder && (
         <OrderModal

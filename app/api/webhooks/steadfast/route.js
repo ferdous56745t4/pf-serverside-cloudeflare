@@ -33,7 +33,17 @@ const mapSteadfastStatus = (steadfastStatus) => {
 
 export async function POST(request) {
   try {
-    // 1. Parse the incoming webhook payload sent from Steadfast
+    // 1. Verify the Bearer token from the Authorization header
+    const authHeader = request.headers.get('authorization') || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    const expectedToken = process.env.STEADFAST_WEBHOOK_SECRET;
+
+    if (!expectedToken || token !== expectedToken) {
+      console.warn('Steadfast Webhook: Unauthorized request - invalid or missing token');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. Parse the incoming webhook payload sent from Steadfast
     const payload = await request.json();
     
     // Per Steadfast docs, the webhook sends "status" (not "delivery_status").
