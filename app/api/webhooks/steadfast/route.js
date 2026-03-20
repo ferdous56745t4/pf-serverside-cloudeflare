@@ -4,7 +4,6 @@ import { orders, stocks } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 
 // Helper function to map steadfast status to internal dashboard status.
-// You may need to tweak this map as you learn the exact steadfast string literals.
 const mapSteadfastStatus = (steadfastStatus) => {
   if (!steadfastStatus) return null;
   const lowerStatus = steadfastStatus.toLowerCase();
@@ -25,11 +24,9 @@ const mapSteadfastStatus = (steadfastStatus) => {
       return 'Delivered';
     case 'cancelled':
     case 'cancelled_approval_pending':
-      return 'Cancelled';
     case 'returned':
       return 'Returned';
     default:
-      // If we don't recognize the Steadfast status, we don't map it.
       return null;
   }
 };
@@ -39,18 +36,18 @@ export async function POST(request) {
     // 1. Parse the incoming webhook payload sent from Steadfast
     const payload = await request.json();
     
-    // Steadfast typically sends consignment_id and delivery_status
-    // Check your Steadfast dashboard docs if the payload structure differs
-    const { consignment_id, delivery_status } = payload;
+    // Per Steadfast docs, the webhook sends "status" (not "delivery_status").
+    // We fall back to delivery_status to remain compatible with any legacy calls.
+    const { consignment_id, status, delivery_status, updated_at } = payload;
+    const steadfastStatus = status || delivery_status;
 
-    if (!consignment_id || !delivery_status) {
+    if (!consignment_id || !steadfastStatus) {
       console.error('Steadfast Webhook: Missing required fields', payload);
-      // Return 400 Bad Request to indicate malformed payload
-      return NextResponse.json({ error: 'Missing consignment_id or delivery_status' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing consignment_id or status' }, { status: 400 });
     }
 
     // 2. Map the Courier Status to our Internal Store Status
-    const dbStatus = mapSteadfastStatus(delivery_status);
+    const dbStatus = mapSteadfastStatus(steadfastStatus);
 
     if (dbStatus) {
       const [existingOrder] = await db.select().from(orders).where(eq(orders.consignmentId, consignment_id.toString()));
@@ -73,34 +70,46 @@ export async function POST(request) {
             .where(eq(stocks.name, 'Book'));
         }
 
-        // 3. Update the matching order in your database using Drizzle
+        // Use Steadfast's exact timestamp if provided, otherwise fall back to now
+        let eventTimeIso = new Date().toISOString();
+        if (updated_at) {
+          const parsed = new Date(updated_at);
+          if (!isNaN(parsed.getTime())) eventTimeIso = parsed.toISOString();
+        }
+
+        // Prepare fields to update
+        const updateFields = {
+          status: dbStatus,
+          courierStatus: steadfastStatus,
+          updatedAt: eventTimeIso
+        };
+
+        if (dbStatus === 'Shipped' && !existingOrder.shippedAt) updateFields.shippedAt = eventTimeIso;
+        if (dbStatus === 'Delivered' && !existingOrder.deliveredAt) updateFields.deliveredAt = eventTimeIso;
+        if (dbStatus === 'Returned' && !existingOrder.returnedAt) updateFields.returnedAt = eventTimeIso;
+
+        // 3. Update the matching order in the database
         const updateResult = await db
           .update(orders)
-          .set({ 
-            status: dbStatus, 
-            courierStatus: delivery_status // Also save the exact courier string for tracking
-          })
+          .set(updateFields)
           .where(eq(orders.id, existingOrder.id))
           .returning({ id: orders.id, orderId: orders.orderId });
 
         if (updateResult.length > 0) {
-          console.log(`Steadfast Webhook: Order ${updateResult[0].orderId} updated to ${dbStatus}`);
+          console.log(`Steadfast Webhook: Order ${updateResult[0].orderId} updated to ${dbStatus} (event time: ${eventTimeIso})`);
         }
       } else {
         console.log(`Steadfast Webhook: Consignment ID ${consignment_id} not found in database.`);
       }
     } else {
-      console.log(`Steadfast Webhook: Received unrecognized status '${delivery_status}', no mapped update performed.`);
+      console.log(`Steadfast Webhook: Received unrecognized status '${steadfastStatus}', no mapped update performed.`);
     }
 
-    // 4. Always return a 200 OK so Steadfast knows we received it 
-    // and doesn't keep retrying unnecessarily.
+    // 4. Always return a 200 OK so Steadfast knows we received it
     return NextResponse.json({ received: true, status: 200 });
 
   } catch (error) {
     console.error('Steadfast Webhook Error:', error);
-    // In production, you might still want to return 200 to prevent retries
-    // But testing 500 can be helpful initially
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -24,7 +24,11 @@ export default async function getAllOrders() {
       smsStatus: o.smsStatus,
       note: o.note,
       date: (o.date && !o.date.includes('Z') && !o.date.includes('+')) ? o.date.replace(' ', 'T') + 'Z' : o.date,
-      createdAt: (o.date && !o.date.includes('Z') && !o.date.includes('+')) ? o.date.replace(' ', 'T') + 'Z' : o.date
+      createdAt: (o.date && !o.date.includes('Z') && !o.date.includes('+')) ? o.date.replace(' ', 'T') + 'Z' : o.date,
+      updatedAt: (o.updatedAt && !o.updatedAt.includes('Z') && !o.updatedAt.includes('+')) ? o.updatedAt.replace(' ', 'T') + 'Z' : o.updatedAt,
+      shippedAt: (o.shippedAt && !o.shippedAt.includes('Z') && !o.shippedAt.includes('+')) ? o.shippedAt.replace(' ', 'T') + 'Z' : o.shippedAt,
+      deliveredAt: (o.deliveredAt && !o.deliveredAt.includes('Z') && !o.deliveredAt.includes('+')) ? o.deliveredAt.replace(' ', 'T') + 'Z' : o.deliveredAt,
+      returnedAt: (o.returnedAt && !o.returnedAt.includes('Z') && !o.returnedAt.includes('+')) ? o.returnedAt.replace(' ', 'T') + 'Z' : o.returnedAt
     };
     });
   } catch(e) {

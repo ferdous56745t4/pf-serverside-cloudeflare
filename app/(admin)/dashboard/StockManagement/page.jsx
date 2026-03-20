@@ -73,27 +73,22 @@ export default function StockManagementPage() {
       
       let currentBaselineStr = baselineSetting?.value;
       
-      if (payments?.success && payments?.data?.payments) {
+      if (payments?.success && payments?.data?.payments && payments.data.payments.length > 0) {
         setSteadfastPayments(payments.data.payments);
         
-        // Calculate new collections
-        if (currentBaselineStr) {
-           const baselineTime = new Date(currentBaselineStr).getTime();
-           
-           const newAmount = payments.data.payments.reduce((sum, p) => {
-              const paymentTime = new Date(p.paid_at || p.created_at).getTime();
-              // Only count successful payments strictly after the baseline
-              if (paymentTime > baselineTime && p.status_label?.toLowerCase() === 'paid') {
-                 return sum + (p.total || 0); // Using net received
-              }
-              return sum;
-           }, 0);
-           setNewCollectionsAmount(newAmount);
+        // Show the latest successful payment
+        const latestPayment = payments.data.payments.find(p => p.status_label?.toLowerCase() === 'paid');
+        if (latestPayment) {
+           setNewCollectionsAmount(latestPayment.total || 0);
+           setBaselineDate(latestPayment.paid_at || latestPayment.created_at || new Date().toISOString());
         } else {
            setNewCollectionsAmount(0);
+           setBaselineDate(null);
         }
+      } else {
+        setNewCollectionsAmount(0);
+        setBaselineDate(null);
       }
-      setBaselineDate(currentBaselineStr);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -101,23 +96,7 @@ export default function StockManagementPage() {
     }
   };
 
-  const handleResetCounter = async () => {
-     if (!confirm("Are you sure you want to reset the New Collections counter back to zero?")) return;
-     
-     setIsLoading(true);
-     try {
-       const { setSetting } = await import('../../../actions/settings');
-       const nowIsoString = new Date().toISOString();
-       await setSetting('STEADFAST_BASELINE_DATE', nowIsoString);
-       // Refresh page data
-       await fetchData();
-     } catch (err) {
-       console.error(err);
-       alert("Failed to reset counter");
-     } finally {
-       setIsLoading(false);
-     }
-  };
+
 
   const calculateTotalExpenses = () => {
     const regularExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -401,24 +380,13 @@ export default function StockManagementPage() {
           <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">@ 490 ৳ / unit</span>
         </div>
 
-        {/* New Payment Counter Card */}
+        {/* New Payment Amount Card */}
         <div className="bg-blue-900/20 backdrop-blur-sm border border-blue-500/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(59,130,246,0.15)] flex flex-col justify-center relative overflow-hidden hover:border-blue-500/60 transition-colors">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-tr-full pointer-events-none"></div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Truck className="text-blue-400" size={20} />
-              <h3 className="text-lg font-medium text-gray-400">New Payment</h3>
-            </div>
-            <button
-              onClick={handleResetCounter}
-              disabled={isLoading}
-              title="Reset baseline date to now"
-              className="text-xs font-semibold bg-blue-500/20 text-blue-300 hover:bg-blue-500/40 px-2 py-1 rounded-md transition-colors border border-blue-500/30 flex items-center gap-1 disabled:opacity-50"
-            >
-              <RefreshCw size={11} className={isLoading ? 'animate-spin' : ''} />
-              Reset
-            </button>
+          <div className="flex items-center gap-2 mb-2">
+            <Truck className="text-blue-400" size={20} />
+            <h3 className="text-lg font-medium text-gray-400">New Payment</h3>
           </div>
           {isLoading ? (
             <div className="w-24 h-8 bg-blue-900/50 rounded animate-pulse mt-2"></div>
@@ -426,7 +394,7 @@ export default function StockManagementPage() {
             <div className="text-4xl font-bold tracking-tighter text-blue-300 mt-2">৳ {newCollectionsAmount.toLocaleString()}</div>
           )}
           <span className="text-xs text-blue-300/50 mt-3 uppercase tracking-wider font-semibold">
-            Since {baselineDate ? new Date(baselineDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Always'}
+            Payout: {baselineDate ? new Date(baselineDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
           </span>
         </div>
       </div>

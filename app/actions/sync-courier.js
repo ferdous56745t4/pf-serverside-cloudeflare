@@ -27,7 +27,6 @@ const mapSteadfastStatus = (steadfastStatus) => {
       return 'Delivered';
     case 'cancelled':
     case 'cancelled_approval_pending':
-      return 'Cancelled';
     case 'returned':
       return 'Returned';
     default:
@@ -116,10 +115,21 @@ export async function syncActiveCouriers() {
                 .where(eq(stocks.name, 'Book'));
             }
 
+            // Use Steadfast's own timestamp if available, so even a late manual sync
+            // records the accurate date the event actually happened.
+            let eventTimeIso = new Date().toISOString();
+            if (result.updated_at) {
+              const parsed = new Date(result.updated_at);
+              if (!isNaN(parsed.getTime())) eventTimeIso = parsed.toISOString();
+            }
             await db.update(orders)
               .set({
                 status: newSysStatus,
-                courierStatus: result.delivery_status
+                courierStatus: result.delivery_status,
+                ...(newSysStatus === 'Shipped' && !order.shippedAt ? { shippedAt: eventTimeIso } : {}),
+                ...(newSysStatus === 'Delivered' && !order.deliveredAt ? { deliveredAt: eventTimeIso } : {}),
+                ...(newSysStatus === 'Returned' && !order.returnedAt ? { returnedAt: eventTimeIso } : {}),
+                updatedAt: eventTimeIso
               })
               .where(eq(orders.id, order.id));
               

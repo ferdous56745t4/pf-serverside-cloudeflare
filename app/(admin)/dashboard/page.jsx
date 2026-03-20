@@ -736,9 +736,14 @@ const OrderModal = ({
           <div className="px-6 py-3 bg-gray-800/60 flex flex-wrap items-center gap-4 border-t border-gray-700/50 shadow-inner">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1 hidden sm:flex"><Zap size={12} className="text-yellow-500"/> Action Center</span>
             
-            <div className="flex items-center gap-2 bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-700 shadow-sm focus-within:border-indigo-500/50 transition-colors ml-auto sm:ml-0">
+            <div className="flex items-center gap-2 bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-700 shadow-sm focus-within:border-indigo-500/50 transition-colors">
               <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Ship Method:</span>
               <ShippingMethodDropdown currentMethod={order.shippingMethod} onMethodChange={onShippingMethodChange} />
+            </div>
+
+            <div className="flex items-center gap-2 bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-700 shadow-sm focus-within:border-indigo-500/50 transition-colors ml-auto sm:ml-0">
+              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Status:</span>
+              <ActionDropdown currentStatus={order.status} onStatusChange={onStatusChange} />
             </div>
           </div>
         </div>
@@ -1936,8 +1941,7 @@ export default function App() {
                   <th className="px-5 py-4 font-semibold text-left text-xs uppercase tracking-wider text-gray-400">Price</th>
                   <th className="px-5 py-4 font-semibold text-left text-xs uppercase tracking-wider text-gray-400 min-w-[120px]">Courier</th>
                   <th className="px-5 py-4 font-semibold w-[160px] text-left text-xs uppercase tracking-wider text-gray-400">Status</th>
-                  <th className="px-5 py-4 font-semibold text-left text-xs uppercase tracking-wider text-gray-400">Call</th>
-                  <th className="px-5 py-4 font-semibold text-right text-xs uppercase tracking-wider text-gray-400">Actions</th>
+                  <th className="px-5 py-4 font-semibold text-right text-xs uppercase tracking-wider text-gray-400">Call</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700 bg-gray-800">
@@ -2082,18 +2086,6 @@ export default function App() {
                             handleCallStatusChange(order.id, val)
                           }
                         />
-                      </td>
-
-                      {/* ACTIONS COLUMN */}
-                      <td className="whitespace-nowrap py-4 px-4 text-sm" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex flex-col gap-2 relative min-w-[100px]">
-                           <ActionDropdown
-                              currentStatus={order.status}
-                              onStatusChange={(newStatus) =>
-                                 handleStatusChange(order.id, newStatus)
-                              }
-                           />
-                        </div>
                       </td>
                     </tr>
                   );

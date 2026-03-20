@@ -387,6 +387,7 @@ export default function AnalyticsDashboard() {
         orders: 0, 
         shipped: 0, 
         delivered: 0,
+        returned: 0,
         cancelled: 0 
       };
     });
@@ -450,18 +451,27 @@ export default function AnalyticsDashboard() {
          hourlyCounts[hour]++;
       }
 
-      // B. Shipped Logic 
+      // B. Shipped Logic
       if (['In Review', 'Shipped', 'Delivered', 'Returned'].includes(order.status) && isCreatedInRange && isInDateRange) {
         rangeShippedCount++;
-        const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, createdDate));
+        const shippedDate = order.shippedAt ? new Date(order.shippedAt) : createdDate;
+        const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, shippedDate));
         if (dayStat) dayStat.shipped += 1;
       }
 
-      // C. Delivered Logic 
+      // C. Delivered Logic
       if (order.status === 'Delivered' && isCreatedInRange && isInDateRange) {
         rangeDeliveredCount++;
-        const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, createdDate));
+        const deliveredDate = order.deliveredAt ? new Date(order.deliveredAt) : createdDate;
+        const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, deliveredDate));
         if (dayStat) dayStat.delivered += 1;
+      }
+
+      // D. Returned Logic
+      if (order.status === 'Returned' && isCreatedInRange && isInDateRange) {
+        const returnedDate = order.returnedAt ? new Date(order.returnedAt) : createdDate;
+        const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, returnedDate));
+        if (dayStat) dayStat.returned += 1;
       }
 
       // 5. UA Parsing 
@@ -661,9 +671,9 @@ export default function AnalyticsDashboard() {
                 <p className="text-xs text-gray-500 mt-1">Order lifecycle metrics over time</p>
              </div>
              <div className="flex gap-2">
-               {['Orders', 'Shipped', 'Delivered'].map(status => (
+               {['Orders', 'Shipped', 'Delivered', 'Returned'].map(status => (
                  <div key={status} className="flex items-center gap-2 px-3 py-1 bg-gray-900/50 rounded-lg border border-gray-700/50">
-                    <div className={`w-2 h-2 rounded-full ${status === 'Orders' ? 'bg-blue-500' : status === 'Shipped' ? 'bg-purple-500' : 'bg-emerald-500'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${status === 'Orders' ? 'bg-blue-500' : status === 'Shipped' ? 'bg-purple-500' : status === 'Delivered' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
                     <span className="text-xs font-medium text-gray-300">{status}</span>
                  </div>
                ))}
@@ -685,6 +695,10 @@ export default function AnalyticsDashboard() {
                     <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
                     <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                   </linearGradient>
+                  <linearGradient id="colorReturned" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
+                  </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
                 <XAxis dataKey="date" stroke="#6B7280" tick={{fontSize: 11, fontWeight: 500}} tickLine={false} axisLine={false} dy={15} />
@@ -694,6 +708,7 @@ export default function AnalyticsDashboard() {
                 <Area type="monotone" dataKey="orders" stroke="#3B82F6" strokeWidth={3} fill="url(#colorOrders)" activeDot={{r: 6, strokeWidth: 0}} />
                 <Area type="monotone" dataKey="shipped" stroke="#A855F7" strokeWidth={3} fill="url(#colorShipped)" activeDot={{r: 6, strokeWidth: 0}} />
                 <Area type="monotone" dataKey="delivered" stroke="#10B981" strokeWidth={3} fill="url(#colorDelivered)" activeDot={{r: 6, strokeWidth: 0}} />
+                <Area type="monotone" dataKey="returned" stroke="#F43F5E" strokeWidth={3} fill="url(#colorReturned)" activeDot={{r: 6, strokeWidth: 0}} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
