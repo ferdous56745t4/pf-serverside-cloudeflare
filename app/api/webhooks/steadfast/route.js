@@ -45,12 +45,16 @@ export async function POST(request) {
 
     // 2. Parse the incoming webhook payload sent from Steadfast
     const payload = await request.json();
-    
-    // Per Steadfast docs, the webhook sends "status" (not "delivery_status").
-    // We fall back to delivery_status to remain compatible with any legacy calls.
-    const { consignment_id, status, delivery_status, updated_at } = payload;
-    const steadfastStatus = status || delivery_status;
+    const { notification_type, consignment_id, status, delivery_status, updated_at, tracking_message } = payload;
 
+    // tracking_update payloads have no "status" field — acknowledge and exit early
+    if (notification_type === 'tracking_update') {
+      console.log(`Steadfast Webhook: tracking_update for consignment ${consignment_id} — "${tracking_message}"`);
+      return NextResponse.json({ received: true, status: 200 });
+    }
+
+    // For delivery_status, status is required
+    const steadfastStatus = status || delivery_status;
     if (!consignment_id || !steadfastStatus) {
       console.error('Steadfast Webhook: Missing required fields', payload);
       return NextResponse.json({ error: 'Missing consignment_id or status' }, { status: 400 });
