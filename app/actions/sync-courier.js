@@ -152,13 +152,17 @@ export async function syncActiveCouriers() {
 
       } catch (err) {
         console.error(`Error syncing CID ${order.consignmentId}:`, err);
-        errors.push(order.consignmentId);
+        errors.push({ cid: order.consignmentId, msg: err.message });
       }
     }
 
     let resultMessage = `Sync complete. ${updatedCount} orders updated.`;
     if (revertedCount > 0) resultMessage += ` ${revertedCount} deleted orders reverted to Processing.`;
-    if (errors.length > 0) resultMessage += ` Failed to check ${errors.length} orders.`;
+    if (errors.length > 0) {
+      resultMessage += ` Failed to check ${errors.length} orders.`;
+      // Append the first error message to help with debugging
+      resultMessage += ` Error details: ${errors[0].msg}`;
+    }
 
     return { 
       success: true, 
