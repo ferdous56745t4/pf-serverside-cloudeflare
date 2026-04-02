@@ -40,7 +40,7 @@ export async function POST(request) {
 
     if (!expectedToken || token !== expectedToken) {
       console.warn('Steadfast Webhook: Unauthorized request - invalid or missing token');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
     }
 
     // 2. Parse the incoming webhook payload sent from Steadfast
@@ -50,14 +50,14 @@ export async function POST(request) {
     // tracking_update payloads have no "status" field — acknowledge and exit early
     if (notification_type === 'tracking_update') {
       console.log(`Steadfast Webhook: tracking_update for consignment ${consignment_id} — "${tracking_message}"`);
-      return NextResponse.json({ received: true, status: 200 });
+      return NextResponse.json({ status: 'success', message: 'Webhook received successfully.' }, { status: 200 });
     }
 
     // For delivery_status, status is required
     const steadfastStatus = status || delivery_status;
     if (!consignment_id || !steadfastStatus) {
       console.error('Steadfast Webhook: Missing required fields', payload);
-      return NextResponse.json({ error: 'Missing consignment_id or status' }, { status: 400 });
+      return NextResponse.json({ status: 'error', message: 'Missing consignment_id or status.' }, { status: 400 });
     }
 
     // 2. Map the Courier Status to our Internal Store Status
@@ -120,10 +120,10 @@ export async function POST(request) {
     }
 
     // 4. Always return a 200 OK so Steadfast knows we received it
-    return NextResponse.json({ received: true, status: 200 });
+    return NextResponse.json({ status: 'success', message: 'Webhook received successfully.' }, { status: 200 });
 
   } catch (error) {
     console.error('Steadfast Webhook Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ status: 'error', message: 'Internal Server Error' }, { status: 500 });
   }
 }
