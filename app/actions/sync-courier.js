@@ -71,15 +71,26 @@ export async function syncActiveCouriers() {
           headers: {
             'Api-Key': apiKey,
             'Secret-Key': secretKey,
-            'Content-Type': 'application/json'
           }
         });
 
-        const result = await response.json();
+        // Safely parse response — Steadfast returns plain-text "Unauthorized Access"
+        // (HTTP 401) for unknown/deleted consignment IDs instead of a proper JSON 404.
+        const text = await response.text();
+        let result = null;
+        try { result = JSON.parse(text); } catch (_) { result = null; }
 
         // 3a. Handle Deleted/Not Found Orders
-        // If the order is completely missing from Steadfast (deleted from their dashboard)
-        if (response.status === 404 || result.status === 400 || (result.status === 'error' && result.message?.toLowerCase().includes('not found'))) {
+        // Steadfast returns plain-text "Unauthorized Access" (HTTP 401) for CIDs that
+        // don't exist or don't belong to this account — result will be null (non-JSON).
+        // It also returns JSON status:400 for validation errors (e.g. non-numeric CID).
+        const isNonJsonResponse = result === null; // plain-text body, always a bad/missing CID
+        const isJsonNotFound = result !== null && (
+          response.status === 404 ||
+          result.status === 400 ||
+          (result.status === 'error' && result.message?.toLowerCase().includes('not found'))
+        );
+        if (isNonJsonResponse || isJsonNotFound) {
           await db.update(orders)
             .set({
               consignmentId: null,      // Remove tracking linkage

@@ -36,10 +36,11 @@ export async function POST(request) {
     // 1. Verify the Bearer token from the Authorization header
     const authHeader = request.headers.get('authorization') || '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    const expectedToken = process.env.STEADFAST_WEBHOOK_SECRET;
+    // Steadfast sends "Bearer {your_api_key}" per their webhook documentation.
+    const expectedToken = process.env.STEADFAST_API_KEY;
 
     if (!expectedToken || token !== expectedToken) {
-      console.warn('Steadfast Webhook: Unauthorized request - invalid or missing token');
+      console.warn('Steadfast Webhook: Unauthorized request - invalid or missing token. Received:', token?.slice(0, 8) + '...');
       return NextResponse.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
     }
 
