@@ -1000,6 +1000,54 @@ const OrderModal = ({
                 </div>
               </div>
             )}
+
+            {/* ORDER JOURNEY TIMELINE */}
+            <div className="bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-700/60 overflow-hidden shadow-lg">
+              <div className="px-5 py-3 border-b border-gray-700/50 bg-gray-800/80 flex items-center gap-2">
+                <Clock size={16} className="text-cyan-400" />
+                <h3 className="text-sm font-semibold text-gray-200">Order Journey</h3>
+              </div>
+              <div className="p-5 flex flex-col gap-4">
+                <div className="relative border-l-2 border-gray-700/50 ml-2 space-y-7 py-2">
+                  {order.date && (
+                    <div className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-gray-900 border-2 border-blue-500 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                      </div>
+                      <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-0.5">Order Placed</p>
+                      <p className="text-sm font-semibold text-gray-200">{new Date(order.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                    </div>
+                  )}
+                  {order.shippedAt && (
+                    <div className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-gray-900 border-2 border-purple-500 flex items-center justify-center shadow-[0_0_8px_rgba(168,85,247,0.4)]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                      </div>
+                      <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest mb-0.5 shadow-sm">Shipped via Courier</p>
+                      <p className="text-sm font-semibold text-gray-200">{new Date(order.shippedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                    </div>
+                  )}
+                  {order.deliveredAt && (
+                    <div className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-gray-900 border-2 border-green-500 flex items-center justify-center shadow-[0_0_8px_rgba(34,197,94,0.4)]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                      </div>
+                      <p className="text-[10px] text-green-400 font-bold uppercase tracking-widest mb-0.5">Delivered to Customer</p>
+                      <p className="text-sm font-semibold text-gray-200">{new Date(order.deliveredAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                    </div>
+                  )}
+                  {order.returnedAt && (
+                    <div className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-gray-900 border-2 border-orange-500 flex items-center justify-center shadow-[0_0_8px_rgba(249,115,22,0.4)]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
+                      </div>
+                      <p className="text-[10px] text-orange-400 font-bold uppercase tracking-widest mb-0.5">Returned</p>
+                      <p className="text-sm font-semibold text-gray-200">{new Date(order.returnedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
             
           </div>
         </div>
