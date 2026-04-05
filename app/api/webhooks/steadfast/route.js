@@ -88,8 +88,23 @@ export async function POST(request) {
         // Use Steadfast's exact timestamp if provided, otherwise fall back to now
         let eventTimeIso = new Date().toISOString();
         if (updated_at) {
-          const parsed = new Date(updated_at);
-          if (!isNaN(parsed.getTime())) eventTimeIso = parsed.toISOString();
+          let timeStr = updated_at.trim();
+          
+          // Replace ' ' with 'T' for robust ISO parsing
+          if (timeStr.includes(' ') && !timeStr.includes('T')) {
+            timeStr = timeStr.replace(' ', 'T');
+          }
+          
+          // If no timezone is specified (checking after character 10 to avoid matching date hyphens),
+          // append +06:00 to assume Bangladesh Standard Time
+          if (!timeStr.endsWith('Z') && !timeStr.includes('+', 10) && !timeStr.includes('-', 10)) {
+            timeStr += '+06:00';
+          }
+          
+          const parsed = new Date(timeStr);
+          if (!isNaN(parsed.getTime())) {
+            eventTimeIso = parsed.toISOString();
+          }
         }
 
         // Prepare fields to update
