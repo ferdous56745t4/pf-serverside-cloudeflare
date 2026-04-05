@@ -42,8 +42,13 @@ export async function PATCH(request, props) {
           .where(eq(stocks.name, 'Book'));
       }
 
-      // 3. Update the actual order status
-      await db.update(orders).set({ status }).where(eq(orders.id, Number(id)));
+      // 3. Update the actual order status + timestamp
+      const now = new Date().toISOString();
+      const updateFields = { status, updatedAt: now };
+      if (status === 'Shipped' && !existingOrder.shippedAt) updateFields.shippedAt = now;
+      if (status === 'Delivered' && !existingOrder.deliveredAt) updateFields.deliveredAt = now;
+      if (status === 'Returned' && !existingOrder.returnedAt) updateFields.returnedAt = now;
+      await db.update(orders).set(updateFields).where(eq(orders.id, Number(id)));
     }
     
     return NextResponse.json({ success: true });

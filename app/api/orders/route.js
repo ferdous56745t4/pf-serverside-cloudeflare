@@ -115,7 +115,10 @@ export async function GET(request) {
       trackingCode: o.trackingCode || null,
       consignmentId: o.consignmentId || null,
       courierStatus: o.courierStatus || "pending",
-      date: (o.date && !o.date.includes('Z') && !o.date.includes('+')) ? o.date.replace(' ', 'T') + 'Z' : o.date
+      date: (o.date && !o.date.includes('Z') && !o.date.includes('+')) ? o.date.replace(' ', 'T') + 'Z' : o.date,
+      shippedAt: o.shippedAt || null,
+      deliveredAt: o.deliveredAt || null,
+      returnedAt: o.returnedAt || null
     }));
     
     return NextResponse.json(mappedOrders);

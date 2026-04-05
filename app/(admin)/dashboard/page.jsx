@@ -1253,11 +1253,18 @@ export default function App() {
       }
       return;
     }
+    const now = new Date().toISOString();
+    const timestampPatch = {};
+    const existingOrder = orders.find((o) => o.id === id);
+    if (newStatus === 'Shipped' && !existingOrder?.shippedAt) timestampPatch.shippedAt = now;
+    if (newStatus === 'Delivered' && !existingOrder?.deliveredAt) timestampPatch.deliveredAt = now;
+    if (newStatus === 'Returned' && !existingOrder?.returnedAt) timestampPatch.returnedAt = now;
+
     setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
+      prev.map((o) => (o.id === id ? { ...o, status: newStatus, ...timestampPatch } : o))
     );
     if (selectedOrder?.id === id)
-      setSelectedOrder((prev) => ({ ...prev, status: newStatus }));
+      setSelectedOrder((prev) => ({ ...prev, status: newStatus, ...timestampPatch }));
     try {
       await fetch(`/api/orders/${id}`, {
         method: "PATCH",
