@@ -392,20 +392,24 @@ export default function AnalyticsDashboard() {
       };
     });
 
+    // Helper to evaluate if any date is within the selected bounds
+    let actualEndDate = new Date(today);
+    if (dateRange && dateRange.to) {
+        actualEndDate = new Date(dateRange.to);
+    }
+    actualEndDate.setHours(23, 59, 59, 999);
+
+    const isDateInRange = (d) => {
+        if (!d) return false;
+        return d >= cutoffDate && d <= actualEndDate;
+    };
+
     // --- MAIN LOOP (Using validOrders) ---
     validOrders.forEach(order => {
       // 1. Parsing Dates
       const createdDate = new Date(order.createdAt);
       
-      const isCreatedInRange = createdDate >= cutoffDate;
-      
-      // If we have a date range end date, check if the order is within the range
-      let isInDateRange = true;
-      if (dateRange && dateRange.to) {
-        const endDate = new Date(dateRange.to);
-        endDate.setHours(23, 59, 59, 999);
-        isInDateRange = createdDate <= endDate;
-      }
+      const isCreatedInRange = isDateInRange(createdDate);
 
       // 2. Revenue Calculation
       const orderValue = parseFloat(order.totalValue) || 0;
@@ -418,7 +422,7 @@ export default function AnalyticsDashboard() {
       // 4. CHART POPULATION & RANGE COUNTS
       
       // A. Order Creation Logic
-      if (isCreatedInRange && isInDateRange) {
+      if (isCreatedInRange) {
          rangeOrdersCount++;
          rangeRevenue += orderValue;
 
@@ -452,23 +456,27 @@ export default function AnalyticsDashboard() {
       }
 
       // B. Shipped Logic
-      if (['In Review', 'Shipped', 'Delivered', 'Returned'].includes(order.status) && isCreatedInRange && isInDateRange) {
-        rangeShippedCount++;
+      if (['In Review', 'Shipped', 'Delivered', 'Returned'].includes(order.status)) {
         const shippedDate = order.shippedAt ? new Date(order.shippedAt) : createdDate;
+        if (isDateInRange(shippedDate)) {
+            rangeShippedCount++;
+        }
         const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, shippedDate));
         if (dayStat) dayStat.shipped += 1;
       }
 
       // C. Delivered Logic
-      if (order.status === 'Delivered' && isCreatedInRange && isInDateRange) {
-        rangeDeliveredCount++;
+      if (order.status === 'Delivered') {
         const deliveredDate = order.deliveredAt ? new Date(order.deliveredAt) : createdDate;
+        if (isDateInRange(deliveredDate)) {
+            rangeDeliveredCount++;
+        }
         const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, deliveredDate));
         if (dayStat) dayStat.delivered += 1;
       }
 
       // D. Returned Logic
-      if (order.status === 'Returned' && isCreatedInRange && isInDateRange) {
+      if (order.status === 'Returned') {
         const returnedDate = order.returnedAt ? new Date(order.returnedAt) : createdDate;
         const dayStat = chartDataArr.find(d => isSameDay(d.fullDate, returnedDate));
         if (dayStat) dayStat.returned += 1;
