@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, Cell, PieChart, Pie, Legend
@@ -279,6 +279,468 @@ const aggregateCounts = (dataArray, keyFetcher, topLimit = 5) => {
   return sorted.slice(0, topLimit);
 };
 
+// --- DISTRICT NAME → SVG ID normalisation ---
+// DB stores readable names; SVG uses CamelCase without apostrophes / spaces
+const DISTRICT_NAME_TO_SVG_ID = {
+  "Cox's Bazar":    'CoxsBazar',
+  'Brahmanbaria':   'Brahmanbaria',
+  'Chattogram':     'Chittagong',
+  'Chittagong':     'Chittagong',
+  'Moulvibazar':    'Moulvibazar',
+  'Moulvibazar':    'Moulvibazar',
+  'Jashore':        'Jessore',
+  'Jessore':        'Jessore',
+  'Jhalokati':      'Jhalokhati',
+  'Jhalokhati':     'Jhalokhati',
+  'Joypurhat':      'Joypurhat',
+  'Kishoreganj':    'Kishorganj',
+  'Kishorganj':     'Kishorganj',
+  'Mymensingh':     'Mymansingh',
+  'Netrokona':      'Netrokona',
+  'Nawabganj':      'Nawabganj',
+  'Narayanganj':    'Narayanganj',
+  'Narsingdi':      'Narshingdi',
+  'Narshingdi':     'Narshingdi',
+  'Patuakhali':     'Patuakhali',
+  'Pirojpur':       'Pirojpur',
+  'Barisal':        'Barisal',
+  'Barguna':        'Barguna',
+  'Bhola':          'Bhola',
+  'Lakshmipur':     'Lakshmipur',
+  'Rajbari':        'Rajbari',
+  'Shariatpur':     'Shariatpur',
+  'Sunamganj':      'Sunamganj',
+  'Habiganj':       'Habiganj',
+  'Sylhet':         'Sylhet',
+  'Thakurgaon':     'Thakurgaon',
+  'Dinajpur':       'Dinajpur',
+  'Rangpur':        'Rangpur',
+  'Gaibandha':      'Gaibandha',
+  'Nilphamari':     'Nilphamari',
+  'Lalmonirhat':    'Lalmonirhat',
+  'Kurigram':       'Kurigram',
+  'Panchagarh':     'Panchaghar',
+  'Panchaghar':     'Panchaghar',
+  'Sirajganj':      'Sirajganj',
+  'Pabna':          'Pabna',
+  'Natore':         'Natore',
+  'Naogaon':        'Naogaon',
+  'Bogura':         'Bogra',
+  'Bogra':          'Bogra',
+  'Rajshahi':       'Rajshahi',
+  'Chapainawabganj':'Nawabganj',
+  'Joypurhat':      'Joypurhat',
+  'Tangail':        'Tangail',
+  'Jamalpur':       'Jamalpur',
+  'Sherpur':        'Sherpur',
+  'Mymansingh':     'Mymansingh',
+  'Dhaka':          'Dhaka',
+  'Dhaka City':     'Dhaka',
+  'Dhaka Sub-Urban':'Dhaka',
+  'Gazipur':        'Gazipur',
+  'Manikganj':      'Manikganj',
+  'Munshiganj':     'Munshiganj',
+  'Narsingdi':      'Narshingdi',
+  'Faridpur':       'Faridpur',
+  'Gopalganj':      'Gopalganj',
+  'Madaripur':      'Madaripur',
+  'Khulna':         'Khulna',
+  'Satkhira':       'Satkhira',
+  'Bagerhat':       'Bagerhat',
+  'Narail':         'Narail',
+  'Jessore':        'Jessore',
+  'Magura':         'Magura',
+  'Jhenaidah':      'Jhenaidah',
+  'Kushtia':        'Kushtia',
+  'Chuadanga':      'Chuadanga',
+  'Meherpur':       'Meherpur',
+  'Comilla':        'Comilla',
+  'Chandpur':       'Chandpur',
+  'Feni':           'Feni',
+  'Noakhali':       'Noakhali',
+  'Lakshmipur':     'Lakshmipur',
+  'Khagrachhari':   'Khagrachari',
+  'Rangamati':      'Rangamati',
+  'Bandarban':      'Bandarban',
+  'Cumilla':        'Comilla',
+};
+
+function districtNameToSvgId(name) {
+  if (!name) return null;
+  // 1. Exact match table
+  if (DISTRICT_NAME_TO_SVG_ID[name]) return DISTRICT_NAME_TO_SVG_ID[name];
+  // 2. Fallback: strip spaces / apostrophes → CamelCase
+  return name.replace(/[^a-zA-Z0-9]/g, '');
+}
+
+// --- COLOUR SCALE: single warm family ---
+// Empty → dark charcoal → muted warm brown → vivid amber → bright gold
+// Single hue family reads as much cleaner and more data-driven on dark UI
+function heatColour(ratio) {
+  if (ratio <= 0) return '#0e141c'; // empty: near-black slate
+  // Step up through warm tones
+  if (ratio < 0.2)  return `rgba(180,100,20,${0.3 + ratio * 2})`;
+  if (ratio < 0.45) return `rgb(${Math.round(180 + (217-180)*(ratio-0.2)/0.25)},${Math.round(80+(119-80)*(ratio-0.2)/0.25)},${Math.round(20+(6-20)*(ratio-0.2)/0.25)})`;
+  if (ratio < 0.72) return `rgb(${Math.round(217+(245-217)*(ratio-0.45)/0.27)},${Math.round(119+(158-119)*(ratio-0.45)/0.27)},${Math.round(6+(11-6)*(ratio-0.45)/0.27)})`;
+  // Top tier: vivid gold
+  const t = (ratio - 0.72) / 0.28;
+  return `rgb(${Math.round(245+(253-245)*t)},${Math.round(158+(224-158)*t)},${Math.round(11+(71-11)*t)})`;
+}
+
+// --- BANGLADESH MAP COMPONENT ---
+const BangladeshMapChart = ({ districtData }) => {
+  const containerRef    = useRef(null);
+  const [svgContent, setSvgContent] = useState('');
+  const [tooltip, setTooltip]       = useState({ visible: false, x: 0, y: 0, data: null });
+  const hoveredEl = useRef(null);
+
+  // Zoom & Pan
+  const [zoom, setZoom]         = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false); // drives cursor style via re-render
+  const dragStart               = useRef({ x: 0, y: 0 });
+
+  // district fill lookup: svgId → colour
+  const fillMap = useMemo(() => {
+    const map = {};
+    const max = districtData.length > 0 ? districtData[0].orders : 1;
+    districtData.forEach(({ svgId, orders }) => {
+      map[svgId] = heatColour(max > 0 ? orders / max : 0);
+    });
+    return map;
+  }, [districtData]);
+
+  // 1. Fetch & sanitise SVG
+  //    Strategy: strip only the fill+opacity CSS rules from the <style> block,
+  //    then inject our own minimal style for clean modern text rendering.
+  useEffect(() => {
+    fetch('/BangladeshMap.svg')
+      .then(r => r.text())
+      .then(text => {
+        let cleaned = text
+          .replace(/<\?xml[^?]*\?>/g, '')
+          // Strip the SVG's own <style> block
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<svg\b/, '<svg width="100%" height="100%" style="overflow:visible;display:block;" ');
+
+        // Inject our own style block right after opening <svg> tag.
+        // The !important overrides on every .st class are the nuclear option:
+        // even if the strip regex fails or the browser caches old styles, 
+        // these rules guarantee our fills win.
+        cleaned = cleaned.replace(
+          /(<svg[^>]*>)/,
+          `$1<style>
+            /* ── Kill ALL baked-in SVG class fills ── */
+            .st0,.st1,.st2,.st3,.st4,.st5,.st6,.st7,
+            .st8,.st9,.st10,.st11,.st12,.st13,.st14,
+            .st15,.st16,.st17,.st18,.st19,.st20,.st21,
+            .st22,.st23,.st24,.st25,.st26,.st27 {
+              fill: #0e141c !important;
+              opacity: 1 !important;
+              stroke: none !important;
+            }
+            /* Division groups: no inherited fill or opacity */
+            g { fill: none !important; opacity: 1 !important; }
+            /* District paths: our JS inline styles will override this */
+            [id$="_District"] {
+              fill: #0e141c !important;
+              paint-order: stroke fill;
+              transition: fill 0.15s, filter 0.15s;
+            }
+            /* District labels */
+            text {
+              font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+              font-size: 9.5px;
+              font-weight: 600;
+              fill: rgba(255,255,255,0.6) !important;
+              pointer-events: none;
+              letter-spacing: 0.015em;
+              text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            }
+          </style>`
+        );
+
+        setSvgContent(cleaned);
+      })
+      .catch(console.error);
+  }, []);
+
+  // 2. Paint / repaint district paths — runs whenever SVG or data changes
+  useEffect(() => {
+    if (!svgContent || !containerRef.current) return;
+    const svgEl = containerRef.current.querySelector('svg');
+    if (!svgEl) return;
+
+    const max = districtData.length > 0 ? districtData[0].orders : 1;
+
+    // Remove baked-in opacity from division groups
+    svgEl.querySelectorAll('g[class]').forEach(g => {
+      g.style.opacity = '1';
+      g.style.fill    = 'none';
+    });
+
+    // Reset ALL individual district paths
+    svgEl.querySelectorAll('[id$="_District"]').forEach(el => {
+      const svgId = el.id.replace('_District', '');
+      const entry = districtData.find(d => d.svgId === svgId);
+      const ratio  = entry && max > 0 ? entry.orders / max : 0;
+
+      el.style.fill        = fillMap[svgId] || '#0e141c';
+      el.style.cursor      = 'pointer';
+      el.style.transition  = 'fill 0.15s, filter 0.15s';
+      el.style.filter      = ratio > 0.7
+        ? `drop-shadow(0 0 5px ${fillMap[svgId]}aa)`  // glow on hot districts
+        : 'none';
+      el.style.stroke      = ratio > 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)';
+      el.style.strokeWidth = '0.5';
+    });
+  }, [svgContent, fillMap, districtData]);
+
+  // 3. Tooltip hover — only active when not dragging
+  const handleMouseMove = useCallback((e) => {
+    if (dragging) return; // suppress tooltip while panning
+
+    const target = e.target.closest('[id$="_District"]');
+
+    // restore previously hovered element
+    if (hoveredEl.current && hoveredEl.current !== target) {
+      const prevId = hoveredEl.current.id.replace('_District', '');
+      hoveredEl.current.style.fill   = fillMap[prevId] || '#1e293b';
+      hoveredEl.current.style.filter = 'none';
+    }
+
+    if (!target) {
+      hoveredEl.current = null;
+      setTooltip(t => ({ ...t, visible: false }));
+      return;
+    }
+
+    // brighten hovered district
+    if (hoveredEl.current !== target) {
+      target.style.filter = 'brightness(1.5) drop-shadow(0 0 6px rgba(255,255,255,0.35))';
+      hoveredEl.current = target;
+    }
+
+    const svgId = target.id.replace('_District', '');
+    const entry = districtData.find(d => d.svgId === svgId);
+    const rect  = containerRef.current.getBoundingClientRect();
+    setTooltip({
+      visible: true,
+      x: e.clientX - rect.left + 14,
+      y: e.clientY - rect.top  - 14,
+      data: {
+        name    : svgId.replace(/([A-Z])/g, ' $1').trim(),
+        orders  : entry?.orders  ?? 0,
+        revenue : entry?.revenue ?? 0,
+        rank    : entry ? districtData.indexOf(entry) + 1 : null,
+      }
+    });
+  }, [districtData, fillMap, dragging]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoveredEl.current) {
+      const prevId = hoveredEl.current.id.replace('_District', '');
+      hoveredEl.current.style.fill   = fillMap[prevId] || '#1e293b';
+      hoveredEl.current.style.filter = 'none';
+      hoveredEl.current = null;
+    }
+    setTooltip(t => ({ ...t, visible: false }));
+  }, [fillMap]);
+
+  // ── Drag/Pan — window-level listeners so fast mouse moves don't drop the drag ──
+  const handleMouseDown = useCallback((e) => {
+    if (e.button !== 0) return; // left click only
+    e.preventDefault();
+
+    // restore hover state immediately on click
+    if (hoveredEl.current) {
+      const prevId = hoveredEl.current.id.replace('_District', '');
+      hoveredEl.current.style.fill   = fillMap[prevId] || '#1e293b';
+      hoveredEl.current.style.filter = 'none';
+      hoveredEl.current = null;
+    }
+    setTooltip(t => ({ ...t, visible: false }));
+
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    setDragging(true);
+
+    const onMove = (ev) => {
+      const dx = ev.clientX - dragStart.current.x;
+      const dy = ev.clientY - dragStart.current.y;
+      dragStart.current = { x: ev.clientX, y: ev.clientY };
+      setPosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+    };
+
+    const onUp = () => {
+      setDragging(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup',   onUp);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup',   onUp);
+  }, [fillMap]);
+
+  const handleMouseUp = () => {}; // handled by window listener above
+
+  // ── Cursor-aware scroll-wheel zoom (like Google Maps) ──────────────────────
+  // With transformOrigin:'center', the container center (W/2, H/2) is the scale pivot.
+  // Visual position of a content point (lx,ly) in a WxH container:
+  //   vx = W/2 + (lx - W/2)*zoom + pos.x
+  //   vy = H/2 + (ly - H/2)*zoom + pos.y
+  // To keep cursor point (cx,cy) fixed after zoom change (ratio = newZoom/oldZoom):
+  //   newPos.x = (cx - W/2)*(1 - ratio) + oldPos.x*ratio
+  //   newPos.y = (cy - H/2)*(1 - ratio) + oldPos.y*ratio
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect    = el.getBoundingClientRect();
+      const cx      = e.clientX - rect.left;  // cursor relative to container
+      const cy      = e.clientY - rect.top;
+      const W       = rect.width;
+      const H       = rect.height;
+      const delta   = -e.deltaY * 0.0012;
+
+      setZoom(oldZoom => {
+        const newZoom = Math.min(5, Math.max(0.4, oldZoom + delta * oldZoom));
+        const ratio   = newZoom / oldZoom;
+        setPosition(pos => ({
+          x: (cx - W / 2) * (1 - ratio) + pos.x * ratio,
+          y: (cy - H / 2) * (1 - ratio) + pos.y * ratio,
+        }));
+        return newZoom;
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // Button zoom: pivot around current view center (cursor = container center)
+  // With transformOrigin:'center', (cx - W/2) = 0 when cursor is at center, so pos scales with ratio
+  const zoomTowards = (factor) => {
+    setZoom(oldZoom => {
+      const newZoom = Math.min(5, Math.max(0.4, oldZoom * factor));
+      const ratio   = newZoom / oldZoom;
+      // cursor at center → (cx - W/2) = 0 → newPos = oldPos * ratio
+      setPosition(pos => ({ x: pos.x * ratio, y: pos.y * ratio }));
+      return newZoom;
+    });
+  };
+  const zoomIn    = () => zoomTowards(1.4);
+  const zoomOut   = () => zoomTowards(1 / 1.4);
+  const resetView = () => { setZoom(1); setPosition({ x: 0, y: 0 }); };
+
+  const totalOrders = districtData.reduce((s, d) => s + d.orders, 0);
+
+  return (
+    <div className="relative w-full h-full flex flex-col">
+
+      {/* ── Zoom Controls ── */}
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
+        {[{ label: '+', fn: zoomIn, title: 'Zoom in' },
+          { label: '−', fn: zoomOut, title: 'Zoom out' },
+          { label: '⊙', fn: resetView, title: 'Reset view' }].map(btn => (
+          <button
+            key={btn.label}
+            onClick={btn.fn}
+            title={btn.title}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold
+                       bg-slate-800/90 border border-slate-600/60 text-slate-300
+                       hover:bg-indigo-600 hover:border-indigo-500 hover:text-white
+                       transition-all duration-150 shadow-lg backdrop-blur"
+          >
+            {btn.label}
+          </button>
+        ))}
+        {zoom !== 1 && (
+          <div className="text-center text-[9px] text-slate-500 font-mono mt-0.5">
+            {Math.round(zoom * 100)}%
+          </div>
+        )}
+      </div>
+
+      {/* ── Map Canvas ── */}
+      <div
+        ref={containerRef}
+        className="relative w-full select-none"
+        style={{ height: '520px', overflow: 'hidden', cursor: dragging ? 'grabbing' : 'grab' }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        onMouseDown={handleMouseDown}
+      >
+        <div
+          className="w-full h-full"
+          style={{
+            transform      : `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+            transformOrigin: 'center',
+            transition     : dragging ? 'none' : 'transform 0.12s ease-out',
+          }}
+          dangerouslySetInnerHTML={{ __html: svgContent }}
+        />
+      </div>
+
+      {/* ── Tooltip ── */}
+      {tooltip.visible && tooltip.data && (
+        <div
+          className="pointer-events-none absolute z-50 min-w-[170px] rounded-xl
+                     bg-slate-900/95 backdrop-blur-xl border border-slate-600/50
+                     shadow-[0_8px_32px_rgba(0,0,0,0.5)] px-3.5 py-3"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-white tracking-wide">{tooltip.data.name}</p>
+            {tooltip.data.rank && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                #{tooltip.data.rank}
+              </span>
+            )}
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-slate-400">Orders</span>
+              <span className="text-[11px] font-bold text-white font-mono">{tooltip.data.orders.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-slate-400">Revenue</span>
+              <span className="text-[11px] font-bold text-indigo-300 font-mono">৳{tooltip.data.revenue.toLocaleString()}</span>
+            </div>
+            {totalOrders > 0 && tooltip.data.orders > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-slate-400">Share</span>
+                <span className="text-[11px] font-bold text-violet-300 font-mono">
+                  {((tooltip.data.orders / totalOrders) * 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Colour scale legend ── */}
+      <div className="mt-4 flex items-center gap-3 px-1">
+        <span className="text-[9px] text-slate-500 uppercase tracking-widest font-medium">No orders</span>
+        <div
+          className="flex-1 h-1.5 rounded-full"
+          style={{
+            background:
+              'linear-gradient(to right, #0e141c, rgba(180,100,20,0.6), rgb(180,80,20), rgb(217,119,6), rgb(245,158,11), rgb(253,224,71))',
+          }}
+        />
+        <span className="text-[9px] text-slate-500 uppercase tracking-widest font-medium">Highest</span>
+      </div>
+      <div className="flex justify-between mt-0.5 px-1">
+        {['Low', 'Medium', 'High', 'Top'].map((l, i) => (
+          <span key={l} className="text-[8px] text-slate-600" style={{ marginLeft: i === 0 ? '6%' : 0 }}>{l}</span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 
 // --- MAIN PAGE COMPONENT ---
 
@@ -529,6 +991,25 @@ export default function AnalyticsDashboard() {
     const totalLocations = locationDist.InsideDhaka + locationDist.OutsideDhaka + locationDist.Other;
     const insidePct = totalLocations > 0 ? ((locationDist.InsideDhaka / totalLocations) * 100).toFixed(0) : 0;
     
+    // --- DISTRICT AGGREGATION ---
+    const districtMap = {};
+    validOrders.forEach(order => {
+      if (!isDateInRange(new Date(order.createdAt))) return;
+      const rawName = order.district;
+      if (!rawName) return;
+      const svgId = districtNameToSvgId(rawName);
+      if (!svgId) return;
+      if (!districtMap[svgId]) {
+         const cleanName = svgId.replace(/([A-Z])/g, ' $1').trim();
+         districtMap[svgId] = { orders: 0, revenue: 0, displayName: cleanName };
+      }
+      districtMap[svgId].orders++;
+      districtMap[svgId].revenue += parseFloat(order.totalValue) || 0;
+    });
+    const districtDataArr = Object.entries(districtMap)
+      .map(([svgId, val]) => ({ svgId, ...val }))
+      .sort((a, b) => b.orders - a.orders);
+
     const totalMarketing = paidCount + organicCount;
     const paidPct = totalMarketing > 0 ? ((paidCount / totalMarketing) * 100).toFixed(0) : 0;
 
@@ -553,7 +1034,7 @@ export default function AnalyticsDashboard() {
     const peakTimeLabel = maxOrders > 0 ? `${peakH} ${peakAmpm}` : "N/A";
 
     return {
-      totalOrders: validOrders.length, // Uses only valid count
+      totalOrders: validOrders.length,
       rangeOrdersCount,
       rangeRevenue, 
       rangeShippedCount,
@@ -582,7 +1063,8 @@ export default function AnalyticsDashboard() {
       androidVersions,
       appContextData,
       hourlyData,
-      peakTimeLabel
+      peakTimeLabel,
+      districtData: districtDataArr,
     };
   }, [orders, dateRange, selectedPreset]);
 
@@ -780,43 +1262,118 @@ export default function AnalyticsDashboard() {
         </Card>
       </div>
 
+      {/* GEOGRAPHY MAP — full width */}
+      <div className="mb-8">
+        <Card>
+          {/* Header */}
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-white">Order Geography</h3>
+              <p className="text-xs text-slate-500 mt-1">District-level order density · hover to inspect · scroll or drag to explore</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Quick summary pills */}
+              <div className="hidden md:flex items-center gap-2">
+                {(analytics?.districtData || []).slice(0, 3).map((d, i) => (
+                  <div
+                    key={d.svgId}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium"
+                    style={{
+                      background: `${['#1e3a5f','#2d1f5e','#3d1a5e'][i]}60`,
+                      borderColor: `${['#3b82f6','#6366f1','#a855f7'][i]}40`,
+                      color: ['#93c5fd','#a5b4fc','#c084fc'][i],
+                    }}
+                  >
+                    <span className="font-bold">#{i+1}</span>
+                    <span>{d.displayName}</span>
+                    <span className="opacity-60">·</span>
+                    <span>{d.orders}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400 border border-indigo-500/20">
+                <MapPin size={20} />
+              </div>
+            </div>
+          </div>
+
+          {/* Main grid: map (wider) + sidebar */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+
+            {/* ── Map ── */}
+            <div className="relative">
+              <BangladeshMapChart districtData={analytics?.districtData || []} />
+            </div>
+
+            {/* ── Sidebar ── */}
+            <div className="flex flex-col gap-0">
+
+              {/* Inside / Outside Dhaka summary badges */}
+              <div className="flex gap-3 mb-5">
+                {analytics?.locationData.map((item, i) => (
+                  <div
+                    key={item.name}
+                    className="flex-1 rounded-xl p-3 border"
+                    style={{
+                      background: `${item.color}12`,
+                      borderColor: `${item.color}30`,
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-[9px] text-slate-400 uppercase tracking-widest font-medium">{item.name}</span>
+                    </div>
+                    <p className="text-xl font-bold text-white">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Top districts leaderboard */}
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-3">Top Districts by Orders</p>
+              <div className="space-y-2.5 overflow-y-auto flex-1 pr-1" style={{ maxHeight: '400px' }}>
+                {(analytics?.districtData || []).slice(0, 15).map((item, idx) => {
+                  const maxOrders   = analytics?.districtData?.[0]?.orders || 1;
+                  const pct         = ((item.orders / maxOrders) * 100);
+                  const barColour   = heatColour(idx === 0 ? 1 : pct / 100);
+                  return (
+                    <div key={item.svgId}>
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="text-[9px] font-bold w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                            style={{ background: `${barColour}22`, color: barColour, border: `1px solid ${barColour}44` }}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span className="text-xs font-medium text-slate-200 truncate max-w-[110px]" title={item.displayName}>
+                            {item.displayName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-[10px] text-slate-400 font-mono">৳{(item.revenue/1000).toFixed(0)}k</span>
+                          <span className="text-[11px] font-bold text-white font-mono">{item.orders}</span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-slate-700/30 rounded-full h-1">
+                        <div
+                          className="h-1 rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, background: barColour, boxShadow: `0 0 6px ${barColour}66` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                {(analytics?.districtData || []).length === 0 && (
+                  <p className="text-xs text-slate-500 text-center mt-8">No district data for selected period</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       {/* SECONDARY STATS - 3 COLUMNS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-        
-        {/* 1. GEOGRAPHY */}
-        <Card className="min-h-[300px]">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-white">Geography</h3>
-                <div className="p-2 bg-gray-700/30 rounded-lg"><MapPin size={16} className="text-gray-400" /></div>
-            </div>
-            <div className="flex flex-col items-center justify-center h-full gap-6">
-                <div className="w-48 h-48 relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie data={analytics?.locationData} innerRadius={60} outerRadius={80} paddingAngle={6} dataKey="value" stroke="none">
-                                {analytics?.locationData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                            </Pie>
-                            <Tooltip content={<CustomTooltip />} />
-                        </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
-                        <span className="text-3xl font-bold text-white tracking-tighter">{analytics?.insidePct}%</span>
-                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mt-1">Inside Dhaka</span>
-                    </div>
-                </div>
-                <div className="flex gap-6">
-                    {analytics?.locationData.map((item) => (
-                         <div key={item.name} className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full" style={{backgroundColor: item.color}}></div>
-                            <div className="flex flex-col">
-                                <span className="text-xs text-gray-400 font-medium">{item.name}</span>
-                                <span className="text-lg font-bold text-white">{item.value}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </Card>
 
         {/* 2. ACQUISITION SOURCE */}
         <Card className="min-h-[300px]">

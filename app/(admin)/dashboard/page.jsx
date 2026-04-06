@@ -660,6 +660,7 @@ const OrderModal = ({
   onShippingMethodChange,
   onPriceChange,
   onLocationChange,
+  onCustomerInfoChange,
 }) => {
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [tempPrice, setTempPrice] = useState(order?.totalValue || 0);
@@ -669,6 +670,11 @@ const OrderModal = ({
   const [district, setDistrict] = useState(order?.district || "");
   const [thana, setThana] = useState(order?.thana || "");
   const [isEditingLocation, setIsEditingLocation] = useState(false);
+
+  // CUSTOMER STATE
+  const [customerName, setCustomerName] = useState(order?.customer?.name || order?.name || "");
+  const [customerPhone, setCustomerPhone] = useState(order?.customer?.phone || order?.number || "");
+  const [isEditingCustomer, setIsEditingCustomer] = useState(false);
 
   const updateAddressWithLocation = (currentAddress, newDistrict, newThana) => {
     if (!currentAddress) currentAddress = "";
@@ -695,6 +701,8 @@ const OrderModal = ({
     setAddress(order?.address || "");
     setDistrict(order?.district || "");
     setThana(order?.thana || "");
+    setCustomerName(order?.customer?.name || order?.name || "");
+    setCustomerPhone(order?.customer?.phone || order?.number || "");
   }, [order]);
   
   const handleSavePrice = () => {
@@ -724,6 +732,27 @@ const OrderModal = ({
                 <div className="flex items-center gap-3 mb-1.5">
                   <h2 className="text-xl font-bold text-white tracking-tight">Order #{order.orderId}</h2>
                   <StatusBadge status={order.status} />
+                  {(order.trackingCode || order.consignmentId) && (
+                    <div 
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold tracking-wider rounded-md shadow-sm cursor-copy hover:bg-indigo-500/30 transition-all"
+                      title="Click to copy Courier ID"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(order.trackingCode || order.consignmentId);
+                        const el = e.currentTarget.querySelector('.copy-text');
+                        if (el) {
+                          const original = el.innerText;
+                          el.innerText = 'COPIED!';
+                          setTimeout(() => {
+                            if (el) el.innerText = original;
+                          }, 1500);
+                        }
+                      }}
+                    >
+                      <Truck size={14} />
+                      <span className="copy-text">{order.trackingCode || order.consignmentId}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-gray-400">
                   <span className="flex items-center gap-1.5 bg-gray-800 px-2 py-1 rounded-md"><Calendar size={12} className="text-gray-500"/> {new Date(order.date).toLocaleString()}</span>
@@ -880,24 +909,64 @@ const OrderModal = ({
 
             {/* CUSTOMER CONTACT CARD */}
             <div className="bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-700/60 overflow-hidden shadow-lg">
-              <div className="px-5 py-3 border-b border-gray-700/50 bg-gray-800/80 flex items-center gap-2">
-                <User size={16} className="text-blue-400" />
-                <h3 className="text-sm font-semibold text-gray-200">Customer Identity</h3>
+              <div className="px-5 py-3 border-b border-gray-700/50 bg-gray-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <User size={16} className="text-blue-400" />
+                  <h3 className="text-sm font-semibold text-gray-200">Customer Identity</h3>
+                </div>
+                {!isEditingCustomer && (
+                  <button onClick={() => setIsEditingCustomer(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 border border-gray-600 shadow-sm rounded-lg text-xs font-semibold transition-all hover:shadow-md text-white">
+                    <Edit size={12} /> Edit Details
+                  </button>
+                )}
               </div>
-              <div className="p-5 flex flex-col sm:flex-row gap-6">
-                <div className="flex-1 bg-gray-900/40 p-3 rounded-xl border border-gray-700/30">
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><User size={10} /> Full Name</p>
-                  <p className="font-semibold text-white text-base truncate">{order.customer?.name || order.name || 'Anonymous'}</p>
-                </div>
-                <div className="flex-1 bg-gray-900/40 p-3 rounded-xl border border-gray-700/30">
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Phone size={10} /> Phone Number</p>
-                  <p className="font-semibold text-white text-base flex items-center gap-2">
-                    {order.customer?.phone || order.number || 'No Phone Number'}
-                    {order.smsStatus === "Sent" && (
-                      <span title="SMS Delivered" className="flex items-center gap-1 text-[10px] uppercase font-bold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full border border-green-400/20"><CheckCircle size={10} /> Verified</span>
-                    )}
-                  </p>
-                </div>
+              <div className="p-5 flex flex-col gap-6">
+                {isEditingCustomer ? (
+                  <div className="space-y-4 animate-in fade-in duration-200 bg-gray-900/60 p-5 rounded-xl border border-gray-700/80 shadow-inner">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><User size={12} className="text-blue-400" /> Full Name</label>
+                        <input
+                          type="text"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          className="w-full bg-gray-950 text-gray-200 border border-gray-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><Phone size={12} className="text-green-400" /> Phone Number</label>
+                        <input
+                          type="text"
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(e.target.value)}
+                          className="w-full bg-gray-950 text-gray-200 border border-gray-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all shadow-inner"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 justify-end mt-4">
+                      <button onClick={() => { setIsEditingCustomer(false); setCustomerName(order?.customer?.name || order?.name || ""); setCustomerPhone(order?.customer?.phone || order?.number || ""); }} className="text-xs text-gray-300 font-semibold px-4 py-2 hover:bg-gray-800 border border-transparent hover:border-gray-600 rounded-lg transition-all">Cancel</button>
+                      <button onClick={() => { onCustomerInfoChange(customerName, customerPhone); setIsEditingCustomer(false); }} className="text-xs text-white px-5 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
+                        <Check size={14} /> Save Details
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-6">
+                    <div className="flex-1 bg-gray-900/40 p-3 rounded-xl border border-gray-700/30">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><User size={10} /> Full Name</p>
+                      <p className="font-semibold text-white text-base truncate">{order.customer?.name || order.name || 'Anonymous'}</p>
+                    </div>
+                    <div className="flex-1 bg-gray-900/40 p-3 rounded-xl border border-gray-700/30">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Phone size={10} /> Phone Number</p>
+                      <p className="font-semibold text-white text-base flex items-center gap-2">
+                        {order.customer?.phone || order.number || 'No Phone Number'}
+                        {order.smsStatus === "Sent" && (
+                          <span title="SMS Delivered" className="flex items-center gap-1 text-[10px] uppercase font-bold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full border border-green-400/20"><CheckCircle size={10} /> Verified</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1336,14 +1405,14 @@ export default function App() {
           // Update the localized row with tracking information to reflect success visually.
           setOrders(prev => prev.map(o => 
              o.id === courierOrder.id 
-               ? { ...o, trackingCode: data.trackingCode, status: "In Review" } 
+               ? { ...o, trackingCode: data.trackingCode, consignmentId: data.consignmentId, status: "In Review" } 
                : o
           ));
           setIsCourierModalOpen(false);
           setCourierOrder(null);
           // Show success popup with the tracking/consignment ID for easy copying
-          setOrderIdsText(data.trackingCode || orderId);
-          setOrderIdsModalConfig({ title: '✅ Courier Sent Successfully!', subtitle: 'Copy the tracking code below' });
+          setOrderIdsText(data.consignmentId || data.trackingCode || orderId);
+          setOrderIdsModalConfig({ title: '✅ Courier Sent Successfully!', subtitle: 'Copy the consignment ID below' });
           setIsOrderIdsModalOpen(true);
        } else {
           alert(`Failed to send to courier: ${data.message || 'Unknown error'}`);
@@ -1528,6 +1597,29 @@ export default function App() {
     } catch (e) {
       console.error("Failed to update location", e);
       alert("Failed to update location to server");
+    }
+  };
+  const handleCustomerInfoChange = async (id, name, phone) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, customer: { ...o.customer, name, phone }, name, number: phone } : o))
+    );
+    if (selectedOrder?.id === id) {
+      setSelectedOrder((prev) => ({
+        ...prev,
+        customer: { ...prev.customer, name, phone },
+        name,
+        number: phone,
+      }));
+    }
+    try {
+      await fetch(`/api/orders/${id}/customer-info`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone }),
+      });
+    } catch (e) {
+      console.error("Failed to update customer info", e);
+      alert("Failed to update customer info to server");
     }
   };
   const handleSaveNote = async (id, noteText) => {
@@ -1721,6 +1813,7 @@ export default function App() {
           }
           onPriceChange={(val) => handlePriceChange(selectedOrder.id, val)}
           onLocationChange={(d, t, a) => handleLocationChange(selectedOrder.id, d, t, a)}
+          onCustomerInfoChange={(name, phone) => handleCustomerInfoChange(selectedOrder.id, name, phone)}
         />
       )}
       <header className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -2031,9 +2124,7 @@ export default function App() {
                       onClick={() => setPinnedOrderId(prev => prev === order.id ? null : order.id)}
                       className={`cursor-pointer transition-all duration-300 ${
                         pinnedOrderId === order.id
-                          ? `bg-gray-700/60 ${index % 2 === 0 ? "" : ""}`
-                          : pinnedOrderId !== null
-                          ? "opacity-30 grayscale hover:opacity-50"
+                          ? "bg-indigo-600/25 ring-1 ring-indigo-500 shadow-[inset_4px_0_0_0_#6366f1] relative z-10"
                           : `hover:bg-gray-700/40 ${index % 2 === 0 ? "bg-gray-700/25" : ""}`
                       }`}
                     >

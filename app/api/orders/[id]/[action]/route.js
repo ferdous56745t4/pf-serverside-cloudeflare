@@ -22,6 +22,8 @@ export async function PATCH(request, props) {
       await db.update(orders).set({ totalValue: body.totalValue }).where(eq(orders.id, Number(id)));
     } else if (action === "note") {
       await db.update(orders).set({ note: body.note }).where(eq(orders.id, Number(id)));
+    } else if (action === "customer-info") {
+      await db.update(orders).set({ name: body.name, number: body.phone }).where(eq(orders.id, Number(id)));
     } else if (action === "location") {
       await db.update(orders).set({ address: body.address, district: body.district, thana: body.thana }).where(eq(orders.id, Number(id)));
     } else if (action === "move-to-abandoned") {

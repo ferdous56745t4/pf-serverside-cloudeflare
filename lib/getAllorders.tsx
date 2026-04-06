@@ -23,6 +23,8 @@ export default async function getAllOrders() {
       callStatus: o.phoneCallStatus || "Pending",
       smsStatus: o.smsStatus,
       note: o.note,
+      district: o.district,
+      thana: o.thana,
       date: (o.date && !o.date.includes('Z') && !o.date.includes('+')) ? o.date.replace(' ', 'T') + 'Z' : o.date,
       createdAt: (o.date && !o.date.includes('Z') && !o.date.includes('+')) ? o.date.replace(' ', 'T') + 'Z' : o.date,
       updatedAt: (o.updatedAt && !o.updatedAt.includes('Z') && !o.updatedAt.includes('+')) ? o.updatedAt.replace(' ', 'T') + 'Z' : o.updatedAt,

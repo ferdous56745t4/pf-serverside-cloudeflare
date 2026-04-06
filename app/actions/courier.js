@@ -75,7 +75,8 @@ export async function sendToSteadfast(orderId) {
       return { 
         success: true, 
         message: 'Order successfully sent to Steadfast Courier!',
-        trackingCode: result.consignment.tracking_code
+        trackingCode: result.consignment.tracking_code,
+        consignmentId: result.consignment.consignment_id.toString()
       };
     } else {
        // API returned an error structure
