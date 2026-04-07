@@ -719,73 +719,96 @@ const OrderModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md transition-all text-gray-200">
       <div className="absolute inset-0" onClick={onClose}></div>
-      <div className="relative w-full max-w-5xl bg-gray-900 rounded-3xl border border-gray-700 shadow-2xl overflow-hidden animate-in fade-in slide-in-bottom-4 duration-300 flex flex-col max-h-[92vh]">
+      <div className="relative w-full max-w-5xl bg-gray-900 rounded-2xl md:rounded-3xl border border-gray-700 shadow-2xl overflow-hidden animate-in fade-in slide-in-bottom-4 duration-300 flex flex-col max-h-[96vh] md:max-h-[92vh]">
         
         {/* HEADER & TOP CONTROLS */}
         <div className="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700 shrink-0 shadow-sm relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between px-6 py-5 gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-inner">
+          <div className="flex flex-col md:flex-row md:items-center justify-between px-4 md:px-6 py-4 md:py-5 gap-3 md:gap-4 relative">
+            <div className="flex items-start md:items-center gap-3 md:gap-4 pr-10 md:pr-0">
+              <div className="p-2 md:p-3 bg-indigo-500/10 rounded-xl md:rounded-2xl border border-indigo-500/20 shadow-inner hidden sm:block">
                 <Package className="text-indigo-400" size={24} />
               </div>
-              <div>
-                <div className="flex items-center gap-3 mb-1.5">
-                  <h2 className="text-xl font-bold text-white tracking-tight">Order #{order.orderId}</h2>
+              <div className="w-full">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1.5">
+                  <h2 className="text-lg md:text-xl font-bold text-white tracking-tight break-words">Order #{order.orderId}</h2>
                   <StatusBadge status={order.status} />
-                  {(order.trackingCode || order.consignmentId) && (
-                    <div 
-                      className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold tracking-wider rounded-md shadow-sm cursor-copy hover:bg-indigo-500/30 transition-all"
-                      title="Click to copy Courier ID"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigator.clipboard.writeText(order.trackingCode || order.consignmentId);
-                        const el = e.currentTarget.querySelector('.copy-text');
-                        if (el) {
-                          const original = el.innerText;
-                          el.innerText = 'COPIED!';
-                          setTimeout(() => {
-                            if (el) el.innerText = original;
-                          }, 1500);
-                        }
-                      }}
-                    >
-                      <Truck size={14} />
-                      <span className="copy-text">{order.trackingCode || order.consignmentId}</span>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto mt-1 sm:mt-0">
+                    {(order.trackingCode || order.consignmentId) && (
+                      <div 
+                        className="flex items-center gap-1.5 px-2 md:px-2.5 py-1 bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-[10px] md:text-xs font-bold tracking-wider rounded-md shadow-sm cursor-copy hover:bg-indigo-500/30 transition-all"
+                        title="Click to copy Courier ID"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(order.trackingCode || order.consignmentId);
+                          const el = e.currentTarget.querySelector('.copy-text-tracking');
+                          if (el) {
+                            const original = el.innerText;
+                            el.innerText = 'COPIED!';
+                            setTimeout(() => {
+                              if (el) el.innerText = original;
+                            }, 1500);
+                          }
+                        }}
+                      >
+                        <Truck size={12} className="md:w-3.5 md:h-3.5" />
+                        <span className="copy-text-tracking">{order.trackingCode || order.consignmentId}</span>
+                      </div>
+                    )}
+                    {(order.trackingCode && order.consignmentId && order.trackingCode !== order.consignmentId) && (
+                      <div 
+                        className="flex items-center gap-1.5 px-2 md:px-2.5 py-1 bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 text-[10px] md:text-xs font-bold tracking-wider rounded-md shadow-sm cursor-copy hover:bg-fuchsia-500/30 transition-all"
+                        title="Click to copy Parcel ID"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(order.consignmentId);
+                          const el = e.currentTarget.querySelector('.copy-text-parcel');
+                          if (el) {
+                            const original = el.innerText;
+                            el.innerText = 'COPIED!';
+                            setTimeout(() => {
+                              if (el) el.innerText = original;
+                            }, 1500);
+                          }
+                        }}
+                      >
+                        <Package size={12} className="md:w-3.5 md:h-3.5" />
+                        <span className="copy-text-parcel">{order.consignmentId.startsWith('#') ? order.consignmentId : `#${order.consignmentId}`}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-gray-400">
-                  <span className="flex items-center gap-1.5 bg-gray-800 px-2 py-1 rounded-md"><Calendar size={12} className="text-gray-500"/> {new Date(order.date).toLocaleString()}</span>
-                  <span className="flex items-center gap-1.5 bg-gray-800 px-2 py-1 rounded-md"><Globe size={12} className="text-gray-500"/> {order.ip || "No IP Available"}</span>
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 text-[10px] md:text-xs font-medium text-gray-400">
+                  <span className="flex items-center gap-1 md:gap-1.5 bg-gray-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md"><Calendar size={10} className="md:w-3 md:h-3 text-gray-500"/> {new Date(order.date).toLocaleString()}</span>
+                  <span className="flex items-center gap-1 md:gap-1.5 bg-gray-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md"><Globe size={10} className="md:w-3 md:h-3 text-gray-500"/> {order.ip || "No IP Available"}</span>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 absolute top-5 right-5 md:static">
-              <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-red-500/20 hover:border-red-500/30 rounded-xl transition-all bg-gray-800 border border-gray-700 shadow-sm">
-                <X size={20} />
+            <div className="absolute top-4 right-4 md:static">
+              <button onClick={onClose} className="p-1.5 md:p-2 text-gray-400 hover:text-white hover:bg-red-500/20 hover:border-red-500/30 rounded-lg md:rounded-xl transition-all bg-gray-800 border border-gray-700 shadow-sm">
+                <X size={16} className="md:w-5 md:h-5" />
               </button>
             </div>
           </div>
           
           {/* INSTANT QUICK ACTIONS BAR - No scrolling Needed! */}
-          <div className="px-6 py-3 bg-gray-800/60 flex flex-wrap items-center gap-4 border-t border-gray-700/50 shadow-inner">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1 hidden sm:flex"><Zap size={12} className="text-yellow-500"/> Action Center</span>
+          <div className="px-4 md:px-6 py-2.5 md:py-3 bg-gray-800/60 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 md:gap-4 border-t border-gray-700/50 shadow-inner">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest hidden sm:flex items-center gap-1"><Zap size={12} className="text-yellow-500"/> Action Center</span>
             
-            <div className="flex items-center gap-2 bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-700 shadow-sm focus-within:border-indigo-500/50 transition-colors">
-              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Ship Method:</span>
+            <div className="flex items-center justify-between sm:justify-start gap-2 bg-gray-900/80 px-2.5 md:px-3 py-1.5 rounded-lg border border-gray-700 shadow-sm focus-within:border-indigo-500/50 transition-colors w-full sm:w-auto">
+              <span className="text-[10px] md:text-[11px] font-semibold text-gray-400 uppercase tracking-wide shrink-0">Ship Method:</span>
               <ShippingMethodDropdown currentMethod={order.shippingMethod} onMethodChange={onShippingMethodChange} />
             </div>
 
-            <div className="flex items-center gap-2 bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-700 shadow-sm focus-within:border-indigo-500/50 transition-colors ml-auto sm:ml-0">
-              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Status:</span>
+            <div className="flex items-center justify-between sm:justify-start gap-2 bg-gray-900/80 px-2.5 md:px-3 py-1.5 rounded-lg border border-gray-700 shadow-sm focus-within:border-indigo-500/50 transition-colors w-full sm:w-auto ml-0 sm:ml-auto md:ml-0">
+              <span className="text-[10px] md:text-[11px] font-semibold text-gray-400 uppercase tracking-wide shrink-0">Status:</span>
               <ActionDropdown currentStatus={order.status} onStatusChange={onStatusChange} />
             </div>
           </div>
         </div>
 
         {/* MAIN MODAL BODY SCROLL AREA */}
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-900/50">
+        <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-900/50">
           
           {/* LEFT SIDE (Main Details) */}
           <div className="col-span-1 lg:col-span-8 space-y-6">
@@ -804,26 +827,26 @@ const OrderModal = ({
             )}
 
             {/* LOGISTICS & ROUTING CARD */}
-            <div className="bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-700/60 overflow-hidden shadow-lg">
-              <div className="px-5 py-3 border-b border-gray-700/50 bg-gray-800/80 flex items-center justify-between">
+            <div className="bg-gray-800/40 backdrop-blur-sm rounded-xl md:rounded-2xl border border-gray-700/60 overflow-hidden shadow-lg">
+              <div className="px-4 md:px-5 py-3 border-b border-gray-700/50 bg-gray-800/80 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <MapPin size={16} className="text-rose-400" />
-                  <h3 className="text-sm font-semibold text-gray-200">Delivery Address & Routing</h3>
+                  <MapPin size={16} className="text-rose-400 md:w-4 md:h-4 w-3.5 h-3.5" />
+                  <h3 className="text-xs md:text-sm font-semibold text-gray-200">Delivery Address & Routing</h3>
                 </div>
                 {!isEditingLocation && (
-                  <button onClick={() => setIsEditingLocation(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 border border-gray-600 shadow-sm rounded-lg text-xs font-semibold transition-all hover:shadow-md text-white">
-                    <Edit size={12} /> Edit Details
+                  <button onClick={() => setIsEditingLocation(true)} className="flex items-center gap-1 md:gap-1.5 px-2.5 md:px-3 py-1 md:py-1.5 bg-gray-700 hover:bg-gray-600 border border-gray-600 shadow-sm rounded-lg text-[10px] md:text-xs font-semibold transition-all hover:shadow-md text-white">
+                    <Edit size={10} className="md:w-3 md:h-3" /> Edit Details
                   </button>
                 )}
               </div>
               
-              <div className="p-5 flex flex-col gap-6">
+              <div className="p-4 md:p-5 flex flex-col gap-4 md:gap-6">
                 {/* Visual Address representation */}
-                <div className="bg-gray-900/60 p-5 rounded-xl border border-gray-700/80 shadow-inner">
+                <div className="bg-gray-900/60 p-4 md:p-5 rounded-lg md:rounded-xl border border-gray-700/80 shadow-inner">
                   {isEditingLocation ? (
-                    <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="space-y-3 md:space-y-4 animate-in fade-in duration-200">
                       <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Edit size={12} className="text-indigo-400" /> Manual Address Override</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-1.5"><Edit size={12} className="text-indigo-400" /> Manual Address Override</p>
                         <textarea 
                           value={address} 
                           onChange={(e) => setAddress(e.target.value)}
@@ -2099,35 +2122,50 @@ export default function App() {
         </div>
       </div>
       {/* TABLE SECTION */}
-      <div className="overflow-hidden rounded-xl border border-gray-700 bg-gray-800 shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="inter-font min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-900/50">
+      <div className="md:overflow-hidden md:rounded-xl md:border md:border-gray-700 bg-transparent md:bg-gray-800 md:shadow-xl">
+        <div className="overflow-x-visible md:overflow-x-auto">
+          <table className="inter-font min-w-full divide-y md:divide-y divide-transparent md:divide-gray-700">
+            <thead className="bg-gray-900/50 hidden md:table-header-group">
               <tr>
-                  <th colSpan="4" className="px-5 py-4 font-semibold w-[200px] text-left text-xs uppercase tracking-wider text-gray-400">Data</th>
-                  <th colSpan="2" className="px-5 py-4 font-semibold w-[300px] text-left text-xs uppercase tracking-wider text-gray-400">Address</th>
-                  <th className="px-5 py-4 font-semibold text-left text-xs uppercase tracking-wider text-gray-400">Price</th>
-                  <th className="px-5 py-4 font-semibold text-left text-xs uppercase tracking-wider text-gray-400 min-w-[120px]">Courier</th>
-                  <th className="px-5 py-4 font-semibold w-[160px] text-left text-xs uppercase tracking-wider text-gray-400">Status</th>
-                  <th className="px-5 py-4 font-semibold text-right text-xs uppercase tracking-wider text-gray-400">Call</th>
+                  {/* Data covers ID, Buttons, Name */}
+                  <th colSpan="3" className="px-2 md:px-5 py-3 md:py-4 font-semibold text-left text-[10px] md:text-xs uppercase tracking-wider text-gray-400">Order info</th>
+                  
+                  {/* Time hidden on very small screens */}
+                  <th className="hidden lg:table-cell px-5 py-4 font-semibold text-left text-xs uppercase tracking-wider text-gray-400">Time</th>
+                  
+                  {/* Address & Shipping hidden on tablet/mobile */}
+                  <th colSpan="2" className="hidden lg:table-cell px-5 py-4 font-semibold text-left text-xs uppercase tracking-wider text-gray-400">Geography</th>
+                  
+                  {/* Price hidden on mobile */}
+                  <th className="hidden md:table-cell px-5 py-4 font-semibold text-left text-xs uppercase tracking-wider text-gray-400">Price</th>
+                  
+                  {/* Courier hidden on mobile */}
+                  <th className="hidden md:table-cell px-5 py-4 font-semibold text-left text-xs uppercase tracking-wider text-gray-400 min-w-[120px]">Courier</th>
+                  
+                  {/* Status */}
+                  <th className="px-2 md:px-5 py-3 md:py-4 font-semibold text-left text-[10px] md:text-xs uppercase tracking-wider text-gray-400 text-center md:text-left">Status</th>
+                  
+                  {/* Call */}
+                  <th className="px-2 md:px-5 py-3 md:py-4 font-semibold text-right text-[10px] md:text-xs uppercase tracking-wider text-gray-400">Call</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700 bg-gray-800">
+            <tbody className="divide-y-0 md:divide-y divide-transparent md:divide-gray-700 bg-transparent md:bg-gray-800">
               {paginatedOrders.length > 0 ? (
                 paginatedOrders.map((order, index) => {
                   const { location, color } = getShippingLocation(
                     order.shippingCost
                   );
                   return (
-                    <tr
-                      key={order.id}
-                      onClick={() => setPinnedOrderId(prev => prev === order.id ? null : order.id)}
-                      className={`cursor-pointer transition-all duration-300 ${
-                        pinnedOrderId === order.id
-                          ? "bg-indigo-600/25 ring-1 ring-indigo-500 shadow-[inset_4px_0_0_0_#6366f1] relative z-10"
-                          : `hover:bg-gray-700/40 ${index % 2 === 0 ? "bg-gray-700/25" : ""}`
-                      }`}
-                    >
+                    <React.Fragment key={order.id}>
+                      {/* DESKTOP ROW */}
+                      <tr
+                        onClick={() => setPinnedOrderId(prev => prev === order.id ? null : order.id)}
+                        className={`hidden md:table-row cursor-pointer transition-all duration-300 ${
+                          pinnedOrderId === order.id
+                            ? "bg-indigo-600/25 ring-1 ring-indigo-500 shadow-[inset_4px_0_0_0_#6366f1] relative z-10"
+                            : `hover:bg-gray-700/40 ${index % 2 === 0 ? "bg-gray-700/25" : ""}`
+                        }`}
+                      >
                       <td className="whitespace-nowrap py-4 px-4 text-sm font-mono text-blue-400">
                         #{order.orderId}
                       </td>
@@ -2165,22 +2203,20 @@ export default function App() {
                           </div>
                       </td>
                       <td className="whitespace-nowrap py-4 px-4 text-sm">
-                             <div className="font-medium text-white text-sm">
+                             <div className="font-medium text-white text-sm max-w-[200px] truncate">
                                {order.customer?.name || order.name || "N/A"}
                              </div>
-                             <div className="text-xs text-gray-400 mt-0.5 max-w-[150px] truncate">
-                               <span className="hidden lg:block md:block">
-                                 {order.customer?.phone || order.number || "N/A"}
-                                 {order.smsStatus === "Sent" && (
-                                   <CheckCircle size={12} className="inline ml-1 text-green-400" />
-                                 )}
-                               </span>
-                               <a
-                                 href={`tel:${order.customer?.phone || order.number}`}
-                                 className="text-xs text-gray-400 mt-0.5 hover:text-blue-500 hover:underline cursor-pointer block lg:hidden md:hidden"
+                             <div className="text-xs text-gray-400 mt-0.5 truncate">
+                               <a 
+                                 href={`tel:${order.customer?.phone || order.number}`} 
+                                 onClick={(e) => { e.stopPropagation(); setPinnedOrderId(order.id); }} 
+                                 className="hover:underline hover:text-blue-400 transition-colors"
                                >
                                  {order.customer?.phone || order.number || "N/A"}
                                </a>
+                               {order.smsStatus === "Sent" && (
+                                 <CheckCircle size={10} className="inline ml-1 text-green-400" />
+                               )}
                              </div>
                       </td>
                       <td className="whitespace-nowrap py-4 px-4 text-sm text-gray-400">
@@ -2192,7 +2228,7 @@ export default function App() {
 
                       {/* ADDRESS COLUMN (Split into text and location) */}
                       <td
-                        className="py-4 px-4 text-sm text-gray-300 max-w-xs truncate"
+                        className="py-4 px-4 text-sm text-gray-300 max-w-[200px] truncate"
                         title={order.address}
                       >
                          {order.address || "N/A"}
@@ -2254,6 +2290,93 @@ export default function App() {
                         />
                       </td>
                     </tr>
+
+                    {/* MOBILE CARD ROW */}
+                    <tr className="md:hidden block mb-4">
+                      <td colSpan="10" className="block p-0">
+                        <div 
+                          onClick={() => setSelectedOrder(order)}
+                          className={`p-4 flex flex-col gap-3.5 active:scale-[0.98] transition-all relative overflow-hidden rounded-xl ${
+                            pinnedOrderId === order.id
+                              ? "bg-indigo-900/40 border border-indigo-500/80 shadow-[0_4px_20px_rgba(99,102,241,0.25)] ring-1 ring-indigo-500/50 z-10"
+                              : "bg-gray-800 border border-gray-700/60 shadow-lg"
+                          }`}
+                        >
+                          {/* Top Row: Customer Info, Time, & Actions */}
+                          <div className="flex justify-between items-start">
+                             <div className="flex flex-col">
+                                <span className="text-gray-100 font-bold text-base max-w-[160px] truncate">{order.customer?.name || order.name || 'N/A'}</span>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <a 
+                                    href={`tel:${order.customer?.phone || order.number}`} 
+                                    onClick={(e) => { e.stopPropagation(); setPinnedOrderId(order.id); }} 
+                                    className="flex items-center gap-1.5 text-xs text-blue-400 font-medium hover:text-blue-300 transition-colors bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20 w-fit shadow-sm"
+                                  >
+                                    <Phone size={10} />
+                                    {order.customer?.phone || order.number || 'N/A'}
+                                  </a>
+                                  {order.smsStatus === "Sent" && <CheckCircle size={12} className="text-green-500" />}
+                                </div>
+                             </div>
+
+                             <div className="flex flex-col items-end gap-2">
+                                {/* Time Badge */}
+                                <div className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-900/60 px-1.5 py-0.5 rounded shadow-sm border border-gray-700/50">
+                                  <Clock size={10} />
+                                  {formatTimeAgo(order.date)}
+                                </div>
+                                {/* Note Button */}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openNoteModal(order); }}
+                                  className={`p-1.5 rounded-md transition-all border shadow-sm flex items-center justify-center ${
+                                    order.note
+                                      ? "bg-yellow-500 text-black border-yellow-400"
+                                      : "bg-gray-700/80 border-gray-600 text-gray-400 hover:text-white"
+                                  }`}
+                                  title={order.note ? "Edit Note" : "Add Note"}
+                                >
+                                  <StickyNote size={14} fill={order.note ? "currentColor" : "none"} />
+                                </button>
+                             </div>
+                          </div>
+
+                          {/* Address Preview */}
+                          <div className="flex justify-between items-center -mt-0.5 pt-0.5">
+                             <span className="text-gray-400 text-xs truncate max-w-[180px] leading-tight">{order.district || order.address || 'N/A'}</span>
+                             <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-900/50 border border-gray-700/50 ${color}`}>{order.shippingMethod}</span>
+                          </div>
+
+                          {/* Actions & Status */}
+                          <div className="flex justify-between items-center mt-1 pt-3 border-t border-gray-700/30">
+                              <div className="flex flex-wrap items-center gap-2">
+                                 <StatusBadge status={order.status} />
+                                 {order.trackingCode && (
+                                   <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold">
+                                     <Truck size={10} /> Steadfast
+                                   </div>
+                                 )}
+                              </div>
+                              <div onClick={(e) => e.stopPropagation()} className="scale-90 origin-right shadow-sm ml-auto">
+                                 <CallStatusDropdown
+                                   currentStatus={order.callStatus}
+                                   onStatusChange={(val) => handleCallStatusChange(order.id, val)}
+                                 />
+                              </div>
+                          </div>
+                          
+                          {/* Bottom utilities (Note) */}
+                          {order.note && (
+                            <div className="flex items-start gap-2 p-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mt-0.5 relative overflow-hidden shadow-inner">
+                               <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
+                               <StickyNote size={12} className="text-yellow-500 mt-0.5 shrink-0" />
+                               <span className="text-xs text-yellow-100/80 italic font-medium pt-0.5">{order.note}</span>
+                            </div>
+                          )}
+
+                        </div>
+                      </td>
+                    </tr>
+                   </React.Fragment>
                   );
                 })
               ) : (

@@ -485,13 +485,13 @@ const BangladeshMapChart = ({ districtData }) => {
       const entry = districtData.find(d => d.svgId === svgId);
       const ratio  = entry && max > 0 ? entry.orders / max : 0;
 
-      el.style.fill        = fillMap[svgId] || '#0e141c';
+      el.style.setProperty('fill', fillMap[svgId] || '#0e141c', 'important');
       el.style.cursor      = 'pointer';
       el.style.transition  = 'fill 0.15s, filter 0.15s';
       el.style.filter      = ratio > 0.7
         ? `drop-shadow(0 0 5px ${fillMap[svgId]}aa)`  // glow on hot districts
         : 'none';
-      el.style.stroke      = ratio > 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)';
+      el.style.setProperty('stroke', ratio > 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)', 'important');
       el.style.strokeWidth = '0.5';
     });
   }, [svgContent, fillMap, districtData]);
@@ -505,7 +505,7 @@ const BangladeshMapChart = ({ districtData }) => {
     // restore previously hovered element
     if (hoveredEl.current && hoveredEl.current !== target) {
       const prevId = hoveredEl.current.id.replace('_District', '');
-      hoveredEl.current.style.fill   = fillMap[prevId] || '#1e293b';
+      hoveredEl.current.style.setProperty('fill', fillMap[prevId] || '#0e141c', 'important');
       hoveredEl.current.style.filter = 'none';
     }
 
@@ -540,7 +540,7 @@ const BangladeshMapChart = ({ districtData }) => {
   const handleMouseLeave = useCallback(() => {
     if (hoveredEl.current) {
       const prevId = hoveredEl.current.id.replace('_District', '');
-      hoveredEl.current.style.fill   = fillMap[prevId] || '#1e293b';
+      hoveredEl.current.style.setProperty('fill', fillMap[prevId] || '#0e141c', 'important');
       hoveredEl.current.style.filter = 'none';
       hoveredEl.current = null;
     }
@@ -555,7 +555,7 @@ const BangladeshMapChart = ({ districtData }) => {
     // restore hover state immediately on click
     if (hoveredEl.current) {
       const prevId = hoveredEl.current.id.replace('_District', '');
-      hoveredEl.current.style.fill   = fillMap[prevId] || '#1e293b';
+      hoveredEl.current.style.setProperty('fill', fillMap[prevId] || '#0e141c', 'important');
       hoveredEl.current.style.filter = 'none';
       hoveredEl.current = null;
     }
