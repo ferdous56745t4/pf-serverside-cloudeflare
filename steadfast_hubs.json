@@ -1027,6 +1027,20 @@
         "Ranisankail",
         "Thakurgaon Sadar"
       ]
+    },
+    {
+      "id": 65,
+      "name": "Gopalganj",
+      "steadfast_hubs": [
+        "Boultali",
+        "GopalGanj",
+        "Gopalganj",
+        "Gopalganj Sadar",
+        "kasiani",
+        "Kotalipara",
+        "Muksudpur",
+        "tungipara"
+      ]
     }
   ]
 }
