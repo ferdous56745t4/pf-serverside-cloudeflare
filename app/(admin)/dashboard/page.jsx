@@ -1191,11 +1191,13 @@ export default function App() {
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [noteOrder, setNoteOrder] = useState(null);
    
-  // Courier Modal State
   const [isCourierModalOpen, setIsCourierModalOpen] = useState(false);
   const [courierOrder, setCourierOrder] = useState(null);
   const [isSendingCourier, setIsSendingCourier] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  // Pause background polling during active modifications
+  const activeRequestsRef = useRef(0);
 
   // Status filter state
   const [statusFilter, setStatusFilter] = useState(null);
@@ -1255,6 +1257,9 @@ export default function App() {
   }, []);
   useEffect(() => {
     const fetchOrders = async (isBackground = false) => {
+      // Prevent background polling from overwriting optimistic UI updates
+      if (isBackground && activeRequestsRef.current > 0) return;
+
       try {
         const res = await fetch("/api/orders");
         const data = await res.json();
@@ -1345,6 +1350,9 @@ export default function App() {
       }
       return;
     }
+    
+    activeRequestsRef.current++;
+    
     const now = new Date().toISOString();
     const timestampPatch = {};
     const existingOrder = orders.find((o) => o.id === id);
@@ -1365,6 +1373,8 @@ export default function App() {
       });
     } catch (e) {
       console.error(e);
+    } finally {
+      setTimeout(() => { activeRequestsRef.current = Math.max(0, activeRequestsRef.current - 1); }, 2000);
     }
   };
   const proceedWithAbandon = async () => {
@@ -1518,13 +1528,20 @@ export default function App() {
   };
 
   const handleCallStatusChange = async (id, newCallStatus) => {
+    activeRequestsRef.current++;
+    
+    // Save original state for rollback
+    const originalOrder = orders.find(o => o.id === id);
+    const originalCallStatus = originalOrder?.callStatus;
+
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, callStatus: newCallStatus } : o))
     );
     if (selectedOrder?.id === id)
       setSelectedOrder((prev) => ({ ...prev, callStatus: newCallStatus }));
+      
     try {
-      await fetch(
+      const res = await fetch(
         `/api/orders/${id}/call-status`,
         {
           method: "PATCH",
@@ -1532,8 +1549,20 @@ export default function App() {
           body: JSON.stringify({ callStatus: newCallStatus }),
         }
       );
+      if (!res.ok) throw new Error("Server failed to save status");
     } catch (e) {
       console.error(e);
+      // Rollback
+      setOrders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, callStatus: originalCallStatus } : o))
+      );
+      if (selectedOrder?.id === id)
+        setSelectedOrder((prev) => ({ ...prev, callStatus: originalCallStatus }));
+        
+      alert("Network error: Failed to save call status. Please try again.");
+    } finally {
+      // Delay resuming background poll to ensure DB read is consistent
+      setTimeout(() => { activeRequestsRef.current = Math.max(0, activeRequestsRef.current - 1); }, 2000);
     }
   };
   const handleShippingMethodChange = async (id, newMethod) => {
@@ -1541,6 +1570,8 @@ export default function App() {
       (option) => option.value === newMethod
     );
     if (!selectedOption) return;
+    
+    activeRequestsRef.current++;
     const newCost = selectedOption.cost;
     setOrders((prev) =>
       prev.map((o) =>
@@ -1575,11 +1606,14 @@ export default function App() {
       );
     } catch (e) {
       console.error(e);
+    } finally {
+      setTimeout(() => { activeRequestsRef.current = Math.max(0, activeRequestsRef.current - 1); }, 2000);
     }
   };
   const handlePriceChange = async (id, newPrice) => {
     const price = Number(newPrice);
     if (isNaN(price)) return;
+    activeRequestsRef.current++;
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, totalValue: price } : o))
     );
@@ -1597,9 +1631,12 @@ export default function App() {
       });
     } catch (e) {
       console.error("Failed to update price", e);
+    } finally {
+      setTimeout(() => { activeRequestsRef.current = Math.max(0, activeRequestsRef.current - 1); }, 2000);
     }
   };
   const handleLocationChange = async (id, district, thana, address) => {
+    activeRequestsRef.current++;
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, district, thana, address } : o))
     );
@@ -1620,9 +1657,12 @@ export default function App() {
     } catch (e) {
       console.error("Failed to update location", e);
       alert("Failed to update location to server");
+    } finally {
+      setTimeout(() => { activeRequestsRef.current = Math.max(0, activeRequestsRef.current - 1); }, 2000);
     }
   };
   const handleCustomerInfoChange = async (id, name, phone) => {
+    activeRequestsRef.current++;
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, customer: { ...o.customer, name, phone }, name, number: phone } : o))
     );
@@ -1643,9 +1683,12 @@ export default function App() {
     } catch (e) {
       console.error("Failed to update customer info", e);
       alert("Failed to update customer info to server");
+    } finally {
+      setTimeout(() => { activeRequestsRef.current = Math.max(0, activeRequestsRef.current - 1); }, 2000);
     }
   };
   const handleSaveNote = async (id, noteText) => {
+    activeRequestsRef.current++;
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, note: noteText } : o))
     );
@@ -1661,8 +1704,10 @@ export default function App() {
         body: JSON.stringify({ note: noteText }),
       });
     } catch (e) {
-      console.error("Failed to save note", e);
+      console.error("Failed to update note", e);
       alert("Failed to save note to server");
+    } finally {
+      setTimeout(() => { activeRequestsRef.current = Math.max(0, activeRequestsRef.current - 1); }, 2000);
     }
   };
   const openNoteModal = (order) => {
@@ -2155,6 +2200,15 @@ export default function App() {
                   const { location, color } = getShippingLocation(
                     order.shippingCost
                   );
+                  // --- READINESS CHECK ---
+                  const isReadyToShip = !order.trackingCode
+                    && order.callStatus === "Confirmed"
+                    && !!order.district
+                    && !!order.thana
+                    && !["Fake", "Cancelled", "Returned", "Abandoned", "Shipped", "Delivered"].includes(order.status);
+                  const needsWork = !order.trackingCode
+                    && !["Fake", "Cancelled", "Returned", "Abandoned", "Shipped", "Delivered"].includes(order.status)
+                    && !isReadyToShip;
                   return (
                     <React.Fragment key={order.id}>
                       {/* DESKTOP ROW */}
@@ -2163,18 +2217,38 @@ export default function App() {
                         className={`hidden md:table-row cursor-pointer transition-all duration-300 ${
                           pinnedOrderId === order.id
                             ? "bg-indigo-600/25 ring-1 ring-indigo-500 shadow-[inset_4px_0_0_0_#6366f1] relative z-10"
-                            : `hover:bg-gray-700/40 ${index % 2 === 0 ? "bg-gray-700/25" : ""}`
+                            : isReadyToShip
+                              ? "bg-emerald-950/30 shadow-[inset_4px_0_0_0_#10b981] hover:bg-emerald-900/20"
+                              : needsWork
+                                ? "shadow-[inset_4px_0_0_0_#f59e0b] hover:bg-gray-700/40 " + (index % 2 === 0 ? "bg-gray-700/25" : "")
+                                : `hover:bg-gray-700/40 ${index % 2 === 0 ? "bg-gray-700/25" : ""}`
                         }`}
                       >
-                      <td className="whitespace-nowrap py-4 px-4 text-sm font-mono text-blue-400">
-                        #{order.orderId}
+                      <td className="whitespace-nowrap py-4 px-4 text-sm font-mono">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-blue-400">#{order.orderId}</span>
+                          {isReadyToShip && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded-full w-fit">
+                              <CheckCircle size={9} /> Ready
+                            </span>
+                          )}
+                          {needsWork && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded-full w-fit">
+                              <AlertTriangle size={9} /> Incomplete
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="whitespace-nowrap py-4 px-4">
                         <div className="flex items-center gap-2">
                            {/* VIEW BUTTON WITH INDICATOR */}
                            <button
-                             onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
-                             className="p-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-blue-600 hover:text-white transition-all relative"
+                             onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); setPinnedOrderId(order.id); }}
+                             className={`p-1.5 rounded-lg transition-all relative ${
+                               pinnedOrderId === order.id
+                                 ? "bg-blue-600 text-white"
+                                 : "bg-gray-700 text-gray-300 hover:bg-blue-600 hover:text-white"
+                             }`}
                              title="View Details"
                            >
                              <Eye size={16} />
@@ -2299,10 +2373,29 @@ export default function App() {
                           className={`p-4 flex flex-col gap-3.5 active:scale-[0.98] transition-all relative overflow-hidden rounded-xl ${
                             pinnedOrderId === order.id
                               ? "bg-indigo-900/40 border border-indigo-500/80 shadow-[0_4px_20px_rgba(99,102,241,0.25)] ring-1 ring-indigo-500/50 z-10"
-                              : "bg-gray-800 border border-gray-700/60 shadow-lg"
+                              : isReadyToShip
+                                ? "bg-emerald-950/40 border border-emerald-500/40 shadow-[0_4px_16px_rgba(16,185,129,0.15)]"
+                                : needsWork
+                                  ? "bg-gray-800 border-l-4 border-l-amber-500 border border-gray-700/60 shadow-lg"
+                                  : "bg-gray-800 border border-gray-700/60 shadow-lg"
                           }`}
                         >
                           {/* Top Row: Customer Info, Time, & Actions */}
+                          {/* READINESS BADGE for mobile */}
+                          {(isReadyToShip || needsWork) && (
+                            <div className="absolute top-2 left-2">
+                              {isReadyToShip && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">
+                                  <CheckCircle size={8} /> Ready
+                                </span>
+                              )}
+                              {needsWork && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded-full">
+                                  <AlertTriangle size={8} /> Incomplete
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <div className="flex justify-between items-start">
                              <div className="flex flex-col">
                                 <span className="text-gray-100 font-bold text-base max-w-[160px] truncate">{order.customer?.name || order.name || 'N/A'}</span>
