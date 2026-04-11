@@ -498,7 +498,7 @@ const HeroSection = () => {
             id="billing_address_1"
           />
           <div className="w-full">
-            <h2 className="text-2xl font-semibold mb-4">Shipping (শিপিং চার্জ)</h2>
+            <h2 className="text-2xl font-semibold mb-4">Delivery (ডেলিভারি চার্জ)</h2>
             <RadioGroup
               value={shipping}
               onValueChange={setShipping}
@@ -551,7 +551,7 @@ const HeroSection = () => {
               <span className="text-lg font-medium">{PRODUCT_PRICE}৳</span>
             </div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-lg">শিপিং চার্জ:</span>
+              <span className="text-lg">ডেলিভারি চার্জ:</span>
               <span className="text-lg font-medium">
                 {shipping === "outside-dhaka" ? "99" : "60"}৳
               </span>
