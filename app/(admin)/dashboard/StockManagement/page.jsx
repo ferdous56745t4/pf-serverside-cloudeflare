@@ -27,7 +27,13 @@ export default function StockManagementPage() {
   const [stock, setStockLevel] = useState(0);
   const [expenses, setExpenses] = useState([]);
   const [facebookCosts, setFacebookCosts] = useState([]);
-  const [financeStats, setFinanceStats] = useState({ totalRevenue: 0, totalDeliveredQuantity: 0 });
+  const [financeStats, setFinanceStats] = useState({
+    totalRevenue: 0,
+    totalProductRevenue: 0,
+    totalShippingRevenue: 0,
+    totalDeliveredQuantity: 0,
+    totalDeliveredOrders: 0,
+  });
   const [steadfastPayments, setSteadfastPayments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -176,19 +182,25 @@ export default function StockManagementPage() {
     }
   };
 
-  const stockValue = stock * 490; // Fixed book price
-  
-  // Financial Calculators
+  const stockValue = stock * 490; // Remaining stock × selling price
+
+  // ── Financial Calculators ──────────────────────────────────────────────────
   const totalExpensesAll = calculateTotalExpenses();
-  // We assume a cost value of 0 initially, or something user specifies. 
-  // Given no clear COGS yet, let's treat Cost = Total Expenses for Profit.
-  // We'll show Revenue, Gross Margin (Revenue - ?) and Net Profit.
-  // For Gross Margin, let's assume no cost to produce except the general expenses, rendering Gross Margin = Revenue.
-  // Alternatively, assuming Book Cost is e.g. 150 BDT:
-  const assumedCostPerBook = 150; 
-  const cogs = financeStats.totalDeliveredQuantity * assumedCostPerBook;
-  const grossMargin = financeStats.totalRevenue - cogs;
-  const netProfit = financeStats.totalRevenue - totalExpensesAll - cogs;
+
+  // Cost of Goods Sold: only count production/purchase cost of books.
+  // We use totalProductRevenue (shipping already stripped) as the revenue base.
+  // This prevents double-counting: shipping cost is already in "Courier Cost" expenses.
+  const assumedCostPerBook = 150; // BDT purchase/production cost per book
+  const totalBooksSold = financeStats.totalDeliveredQuantity; // Accurate qty from items[]
+  const cogs = totalBooksSold * assumedCostPerBook;
+
+  // Gross Margin = Product Revenue − COGS  (shipping excluded from both sides)
+  const grossMargin = financeStats.totalProductRevenue - cogs;
+
+  // Net Profit = Product Revenue − COGS − All Expenses
+  // (Courier Cost expense covers shipping spend; product revenue excludes shipping income.
+  //  So both sides balance without double-counting.)
+  const netProfit = financeStats.totalProductRevenue - cogs - totalExpensesAll;
 
   // Filter Logic
   const uniqueCategories = ['All', ...new Set(expenses.map(e => e.category === 'Other' ? e.customCategory : e.category))].filter(Boolean);
@@ -278,23 +290,34 @@ export default function StockManagementPage() {
         </button>
       </div>
 
+      {/* ── Financial Summary: math explanation banner ── */}
+      <div className="mb-2 bg-gray-900/60 border border-gray-700/40 rounded-xl px-5 py-3 text-[11px] text-gray-500 leading-relaxed">
+        <span className="font-semibold text-gray-400">How the math works: </span>
+        Revenue shown is <strong className="text-gray-300">product revenue only</strong> (shipping cost excluded).
+        Gross Margin = Product Revenue − COGS (৳150/book).
+        Net Profit = Gross Margin − All Expenses (courier, ads, transport, etc.).
+        Shipping income &amp; courier cost cancel each other out — so neither appears in the profit formula.
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
-        {/* Total Revenue Card */}
+        {/* Total Revenue Card — product revenue only, shipping excluded */}
         <div className="bg-gray-800/50 backdrop-blur-sm border border-emerald-900/50 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-bl-full pointer-events-none"></div>
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="text-emerald-400" size={20} />
-            <h3 className="text-lg font-medium text-gray-400">Total Revenue</h3>
+            <h3 className="text-lg font-medium text-gray-400">Product Revenue</h3>
           </div>
           {isLoading ? (
             <div className="h-10 flex items-center justify-center animate-pulse mt-2"><div className="w-20 h-8 bg-gray-700 rounded-lg"></div></div>
           ) : (
             <div className="text-4xl font-bold tracking-tighter text-emerald-400 drop-shadow-md break-all text-center mt-2">
-              ৳ {financeStats.totalRevenue.toLocaleString()}
+              ৳ {financeStats.totalProductRevenue.toLocaleString()}
             </div>
           )}
-          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">From Delivered Orders</span>
+          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold" title="Total collected minus shipping charges">
+            Delivered · Shipping Excluded
+          </span>
         </div>
 
         {/* Gross Margin Card */}
@@ -307,11 +330,13 @@ export default function StockManagementPage() {
           {isLoading ? (
             <div className="h-10 flex items-center justify-center animate-pulse mt-2"><div className="w-20 h-8 bg-gray-700 rounded-lg"></div></div>
           ) : (
-            <div className="text-4xl font-bold tracking-tighter text-blue-400 drop-shadow-md break-all text-center mt-2">
+            <div className={`text-4xl font-bold tracking-tighter drop-shadow-md break-all text-center mt-2 ${grossMargin >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
               ৳ {grossMargin.toLocaleString()}
             </div>
           )}
-          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold" title="Revenue - COGS (150tk/book)">Assumes 150 ৳ / Book Cost</span>
+          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold" title={`Product Revenue − COGS (${totalBooksSold} books × ৳150)`}>
+            {isLoading ? '—' : `${totalBooksSold} books × ৳150 COGS`}
+          </span>
         </div>
 
         {/* Total Expenses Card */}
@@ -328,7 +353,7 @@ export default function StockManagementPage() {
               ৳ {totalExpensesAll.toLocaleString()}
             </div>
           )}
-          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">Includes FB Ads</span>
+          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">Courier + Ads + Other</span>
         </div>
 
         {/* Net Profit Card */}
@@ -345,11 +370,11 @@ export default function StockManagementPage() {
               ৳ {netProfit.toLocaleString()}
             </div>
           )}
-          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">Margin - Expenses</span>
+          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">Gross Margin − All Expenses</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
         {/* Current Stock Card */}
         <div className="bg-violet-900/20 backdrop-blur-sm border border-violet-500/30 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-violet-500/60 transition-colors">
           <div className="absolute bottom-0 right-0 w-28 h-28 bg-violet-500/10 rounded-tl-full pointer-events-none"></div>
@@ -360,9 +385,30 @@ export default function StockManagementPage() {
           {isLoading ? (
             <div className="h-10 flex items-center justify-center animate-pulse mt-2"><div className="w-20 h-8 bg-violet-900/50 rounded-lg"></div></div>
           ) : (
-            <div className={`text-4xl font-bold tracking-tighter drop-shadow-md mt-2 ${stock < 100 ? 'text-red-400' : 'text-violet-300'}`}>{stock} <span className="text-lg font-normal text-gray-500">units</span></div>
+            <div className={`text-4xl font-bold tracking-tighter drop-shadow-md mt-2 ${stock < 100 ? 'text-red-400' : 'text-violet-300'}`}>
+              {stock} <span className="text-lg font-normal text-gray-500">units</span>
+            </div>
           )}
-          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">Books in Inventory</span>
+          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">Manually Updated Inventory</span>
+        </div>
+
+        {/* Books Sold Card — accurate unit count from delivered orders */}
+        <div className="bg-orange-900/20 backdrop-blur-sm border border-orange-500/30 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-orange-500/60 transition-colors">
+          <div className="absolute top-0 left-0 w-28 h-28 bg-orange-500/10 rounded-br-full pointer-events-none"></div>
+          <div className="flex items-center gap-2 mb-2">
+            <Activity className="text-orange-400" size={20} />
+            <h3 className="text-lg font-medium text-gray-400">Books Sold</h3>
+          </div>
+          {isLoading ? (
+            <div className="h-10 flex items-center justify-center animate-pulse mt-2"><div className="w-20 h-8 bg-orange-900/50 rounded-lg"></div></div>
+          ) : (
+            <div className="text-4xl font-bold tracking-tighter text-orange-300 drop-shadow-md mt-2">
+              {totalBooksSold.toLocaleString()} <span className="text-lg font-normal text-gray-500">units</span>
+            </div>
+          )}
+          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold" title="Actual qty summed from all delivered orders">
+            {isLoading ? '—' : `${financeStats.totalDeliveredOrders} delivered orders`}
+          </span>
         </div>
 
         {/* Stock Value Card */}
@@ -377,7 +423,7 @@ export default function StockManagementPage() {
           ) : (
             <div className="text-4xl font-bold tracking-tighter text-cyan-300 drop-shadow-md break-all text-center mt-2">৳ {stockValue.toLocaleString()}</div>
           )}
-          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">@ 490 ৳ / unit</span>
+          <span className="text-xs text-gray-500 mt-3 uppercase tracking-wider font-semibold">Remaining stock @ ৳490 / unit</span>
         </div>
 
         {/* New Payment Amount Card */}
@@ -386,7 +432,7 @@ export default function StockManagementPage() {
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-tr-full pointer-events-none"></div>
           <div className="flex items-center gap-2 mb-2">
             <Truck className="text-blue-400" size={20} />
-            <h3 className="text-lg font-medium text-gray-400">New Payment</h3>
+            <h3 className="text-lg font-medium text-gray-400">Latest Payout</h3>
           </div>
           {isLoading ? (
             <div className="w-24 h-8 bg-blue-900/50 rounded animate-pulse mt-2"></div>

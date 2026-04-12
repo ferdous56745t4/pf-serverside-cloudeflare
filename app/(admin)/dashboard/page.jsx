@@ -228,11 +228,11 @@ const CallStatusDropdown = ({ currentStatus, onStatusChange }) => {
     return <PhoneCall size={12} />;
   };
   return (
-    <div className="relative w-36">
+    <div className="relative min-w-[110px] flex-1 sm:flex-none sm:w-36">
       <select
         value={currentStatus}
         onChange={(e) => onStatusChange(e.target.value)}
-        className={`appearance-none w-full rounded-md border py-1.5 pl-8 pr-2 text-xs font-medium shadow-sm focus:outline-none focus:ring-1 ${currentStyle} transition-colors cursor-pointer`}
+        className={`appearance-none w-full rounded-md border py-1.5 pl-7 pr-2 text-xs font-medium shadow-sm focus:outline-none focus:ring-1 ${currentStyle} transition-colors cursor-pointer`}
       >
         {CALL_OPTIONS.map((option) => (
           <option
@@ -245,7 +245,7 @@ const CallStatusDropdown = ({ currentStatus, onStatusChange }) => {
         ))}
       </select>
       <div
-        className={`pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 opacity-80 text-currentColor`}
+        className={`pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 opacity-80 text-currentColor`}
       >
         {getIcon()}
       </div>
@@ -2054,24 +2054,22 @@ export default function App() {
         )}
       </div>
       {/* SEARCH AND DATE FILTER SECTION */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-gray-800/50 p-4 rounded-lg border border-gray-700/50 mb-5">
-        <div className="relative w-full lg:w-1/3">
+      <div className="flex flex-col gap-3 bg-gray-800/50 p-3 md:p-4 rounded-xl border border-gray-700/50 mb-5">
+        {/* Row 1: Search */}
+        <div className="relative w-full">
           <input
             type="text"
-            placeholder="Search orders..."
+            placeholder="Search by name, phone, or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="inter-font w-full rounded-lg border border-gray-600 bg-gray-900 py-2 pl-10 pr-4 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+            className="inter-font w-full rounded-xl border border-gray-600 bg-gray-900 py-2.5 pl-10 pr-4 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm"
           />
-          <Search
-            size={18}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-          />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
         </div>
-         
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-          {/* Date Range Picker */}
-          <div className="w-full sm:w-auto">
+
+        {/* Row 2: Date Picker + Rows per page */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex-1 min-w-0">
             <DateRangePicker
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
@@ -2079,98 +2077,75 @@ export default function App() {
               onPresetChange={setSelectedPreset}
             />
           </div>
-           
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-             <button
-               onClick={async () => {
-                 if (isSyncing) return;
-                 setIsSyncing(true);
-                 try {
-                   const { syncActiveCouriers } = await import('@/app/actions/sync-courier');
-                   const res = await syncActiveCouriers();
-                   alert(res.message);
-                   if (res.updated > 0 || res.reverted > 0) {
-                     window.location.reload();
-                   }
-                 } catch (e) {
-                   console.error(e);
-                   alert("Failed to sync couriers");
-                 } finally {
-                   setIsSyncing(false);
-                 }
-               }}
-               disabled={isSyncing}
-               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed group"
-               title="Sync Real-Time Delivery Status for Active Orders"
-             >
-               {isSyncing ? (
-                 <>
-                  <Loader2 size={14} className="animate-spin" />
-                  Syncing...
-                 </>
-               ) : (
-                 <>
-                  <RefreshCw size={14} className="group-hover:animate-spin" />
-                  Sync Courier Status
-                 </>
-               )}
-             </button>
-             
-             {statusFilter === "In Review" && (
-                <button
-                  onClick={() => {
-                    const idsString = filteredOrders
-                      .map((o) => o.consignmentId)
-                      .filter(Boolean)
-                      .join(", ");
-                    setOrderIdsText(idsString);
-                    setIsOrderIdsModalOpen(true);
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap"
-                  title="View Comma-Separated Consignment IDs"
-                >
-                  <Package size={16} />
-                  View Consignment IDs
-                </button>
-              )}
-             
-              {statusFilter === "ConfirmedProcessing" && (
-                <button
-                  onClick={handleOpenBulkCourierModal}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold tracking-widest leading-none rounded-lg transition-all shadow-md active:translate-y-0 border border-green-500/50 whitespace-nowrap"
-                  title="Send All Pending to Courier"
-                >
-                  <Send size={16} />
-                  SEND BULK COURIER
-                </button>
-              )}
-            <label className="text-sm text-gray-400">Rows per page:</label>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-gray-500 whitespace-nowrap hidden sm:block">Rows:</span>
             <div className="relative">
               <select
                 value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="inter-font appearance-none rounded-md border border-gray-600 bg-gray-900 py-1.5 pl-3 pr-8 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                className="inter-font appearance-none rounded-lg border border-gray-600 bg-gray-900 py-2 pl-3 pr-7 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
               </select>
-              <ChevronDown
-                size={14}
-                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400"
-              />
+              <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
           </div>
+        </div>
+
+        {/* Row 3: Action Buttons */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={async () => {
+              if (isSyncing) return;
+              setIsSyncing(true);
+              try {
+                const { syncActiveCouriers } = await import('@/app/actions/sync-courier');
+                const res = await syncActiveCouriers();
+                alert(res.message);
+                if (res.updated > 0 || res.reverted > 0) window.location.reload();
+              } catch (e) {
+                console.error(e);
+                alert("Failed to sync couriers");
+              } finally {
+                setIsSyncing(false);
+              }
+            }}
+            disabled={isSyncing}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed group min-w-[140px]"
+          >
+            {isSyncing ? <><Loader2 size={14} className="animate-spin" /> Syncing...</> : <><RefreshCw size={14} className="group-hover:animate-spin" /> Sync Courier</>}
+          </button>
+
+          {statusFilter === "In Review" && (
+            <button
+              onClick={() => {
+                const idsString = filteredOrders.map((o) => o.consignmentId).filter(Boolean).join(", ");
+                setOrderIdsText(idsString);
+                setIsOrderIdsModalOpen(true);
+              }}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+            >
+              <Package size={14} /> Consignment IDs
+            </button>
+          )}
+
+          {statusFilter === "ConfirmedProcessing" && (
+            <button
+              onClick={handleOpenBulkCourierModal}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-xl transition-all shadow-md border border-green-500/50 whitespace-nowrap"
+            >
+              <Send size={14} /> Send Bulk Courier
+            </button>
+          )}
         </div>
       </div>
       {/* TABLE SECTION */}
       <div className="md:overflow-hidden md:rounded-xl md:border md:border-gray-700 bg-transparent md:bg-gray-800 md:shadow-xl">
-        <div className="overflow-x-visible md:overflow-x-auto">
-          <table className="inter-font min-w-full divide-y md:divide-y divide-transparent md:divide-gray-700">
-            <thead className="bg-gray-900/50 hidden md:table-header-group">
+        <div className="w-full relative">
+          <table className="inter-font w-full block md:table md:min-w-full divide-y md:divide-y divide-transparent md:divide-gray-700">
+            <thead className="bg-gray-900/50 hidden md:table-header-group w-full block">
               <tr>
                   {/* Data covers ID, Buttons, Name */}
                   <th colSpan="3" className="px-2 md:px-5 py-3 md:py-4 font-semibold text-left text-[10px] md:text-xs uppercase tracking-wider text-gray-400">Order info</th>
@@ -2194,7 +2169,7 @@ export default function App() {
                   <th className="px-2 md:px-5 py-3 md:py-4 font-semibold text-right text-[10px] md:text-xs uppercase tracking-wider text-gray-400">Call</th>
               </tr>
             </thead>
-            <tbody className="divide-y-0 md:divide-y divide-transparent md:divide-gray-700 bg-transparent md:bg-gray-800">
+            <tbody className="divide-y-0 md:divide-y divide-transparent md:divide-gray-700 bg-transparent md:bg-gray-800 block md:table-row-group w-full outline-none">
               {paginatedOrders.length > 0 ? (
                 paginatedOrders.map((order, index) => {
                   const { location, color } = getShippingLocation(
@@ -2366,106 +2341,125 @@ export default function App() {
                     </tr>
 
                     {/* MOBILE CARD ROW */}
-                    <tr className="md:hidden block mb-4">
-                      <td colSpan="10" className="block p-0">
-                        <div 
+                    <tr className="md:hidden block mb-3 w-full">
+                      <td colSpan="10" className="block p-0 w-full outline-none">
+                        <div
                           onClick={() => setSelectedOrder(order)}
-                          className={`p-4 flex flex-col gap-3.5 active:scale-[0.98] transition-all relative overflow-hidden rounded-xl ${
+                          className={`flex flex-col gap-0 active:scale-[0.99] transition-transform relative overflow-hidden rounded-2xl cursor-pointer ${
                             pinnedOrderId === order.id
-                              ? "bg-indigo-900/40 border border-indigo-500/80 shadow-[0_4px_20px_rgba(99,102,241,0.25)] ring-1 ring-indigo-500/50 z-10"
+                              ? "bg-indigo-900/40 border border-indigo-500/80 shadow-[0_4px_20px_rgba(99,102,241,0.25)]"
                               : isReadyToShip
-                                ? "bg-emerald-950/40 border border-emerald-500/40 shadow-[0_4px_16px_rgba(16,185,129,0.15)]"
+                                ? "bg-emerald-950/40 border border-emerald-500/40 shadow-[0_2px_12px_rgba(16,185,129,0.12)]"
                                 : needsWork
-                                  ? "bg-gray-800 border-l-4 border-l-amber-500 border border-gray-700/60 shadow-lg"
-                                  : "bg-gray-800 border border-gray-700/60 shadow-lg"
+                                  ? "bg-gray-800/90 border-l-[3px] border-l-amber-500 border border-gray-700/60 shadow-md"
+                                  : "bg-gray-800/90 border border-gray-700/50 shadow-md"
                           }`}
                         >
-                          {/* Top Row: Customer Info, Time, & Actions */}
-                          {/* READINESS BADGE for mobile */}
-                          {(isReadyToShip || needsWork) && (
-                            <div className="absolute top-2 left-2">
-                              {isReadyToShip && (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">
-                                  <CheckCircle size={8} /> Ready
-                                </span>
-                              )}
-                              {needsWork && (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded-full">
-                                  <AlertTriangle size={8} /> Incomplete
-                                </span>
-                              )}
+                          {/* ── Card Header ── */}
+                          <div className="px-4 pt-4 pb-3 flex items-start gap-3">
+                            {/* Left: Avatar circle */}
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                              isReadyToShip ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : needsWork ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : 'bg-gray-700 text-gray-300 border border-gray-600'
+                            }`}>
+                              {(order.customer?.name || order.name || '?').charAt(0).toUpperCase()}
                             </div>
-                          )}
-                          <div className="flex justify-between items-start">
-                             <div className="flex flex-col">
-                                <span className="text-gray-100 font-bold text-base max-w-[160px] truncate">{order.customer?.name || order.name || 'N/A'}</span>
-                                <div className="flex items-center gap-2 mt-1.5">
-                                  <a 
-                                    href={`tel:${order.customer?.phone || order.number}`} 
-                                    onClick={(e) => { e.stopPropagation(); setPinnedOrderId(order.id); }} 
-                                    className="flex items-center gap-1.5 text-xs text-blue-400 font-medium hover:text-blue-300 transition-colors bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20 w-fit shadow-sm"
-                                  >
-                                    <Phone size={10} />
-                                    {order.customer?.phone || order.number || 'N/A'}
-                                  </a>
-                                  {order.smsStatus === "Sent" && <CheckCircle size={12} className="text-green-500" />}
-                                </div>
-                             </div>
 
-                             <div className="flex flex-col items-end gap-2">
-                                {/* Time Badge */}
-                                <div className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-900/60 px-1.5 py-0.5 rounded shadow-sm border border-gray-700/50">
-                                  <Clock size={10} />
-                                  {formatTimeAgo(order.date)}
-                                </div>
-                                {/* Note Button */}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); openNoteModal(order); }}
-                                  className={`p-1.5 rounded-md transition-all border shadow-sm flex items-center justify-center ${
-                                    order.note
-                                      ? "bg-yellow-500 text-black border-yellow-400"
-                                      : "bg-gray-700/80 border-gray-600 text-gray-400 hover:text-white"
-                                  }`}
-                                  title={order.note ? "Edit Note" : "Add Note"}
-                                >
-                                  <StickyNote size={14} fill={order.note ? "currentColor" : "none"} />
-                                </button>
-                             </div>
-                          </div>
-
-                          {/* Address Preview */}
-                          <div className="flex justify-between items-center -mt-0.5 pt-0.5">
-                             <span className="text-gray-400 text-xs truncate max-w-[180px] leading-tight">{order.district || order.address || 'N/A'}</span>
-                             <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-900/50 border border-gray-700/50 ${color}`}>{order.shippingMethod}</span>
-                          </div>
-
-                          {/* Actions & Status */}
-                          <div className="flex justify-between items-center mt-1 pt-3 border-t border-gray-700/30">
-                              <div className="flex flex-wrap items-center gap-2">
-                                 <StatusBadge status={order.status} />
-                                 {order.trackingCode && (
-                                   <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold">
-                                     <Truck size={10} /> Steadfast
-                                   </div>
-                                 )}
+                            {/* Middle: Name + Phone */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-white font-semibold text-sm leading-tight truncate max-w-[170px]">{order.customer?.name || order.name || 'N/A'}</span>
+                                {/* Status pill inline with name */}
+                                {(isReadyToShip || needsWork) && (
+                                  <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                                    isReadyToShip
+                                      ? 'text-emerald-300 bg-emerald-500/20 border border-emerald-500/30'
+                                      : 'text-amber-300 bg-amber-500/20 border border-amber-500/30'
+                                  }`}>
+                                    {isReadyToShip ? <><CheckCircle size={8} />Ready</> : <><AlertTriangle size={8} />Incomplete</>}
+                                  </span>
+                                )}
                               </div>
-                              <div onClick={(e) => e.stopPropagation()} className="scale-90 origin-right shadow-sm ml-auto">
-                                 <CallStatusDropdown
-                                   currentStatus={order.callStatus}
-                                   onStatusChange={(val) => handleCallStatusChange(order.id, val)}
-                                 />
+                              <a
+                                href={`tel:${order.customer?.phone || order.number}`}
+                                onClick={(e) => { e.stopPropagation(); setPinnedOrderId(order.id); }}
+                                className="flex items-center gap-1.5 mt-1 text-xs text-blue-400 font-medium hover:text-blue-300 w-fit"
+                              >
+                                <Phone size={11} className="shrink-0" />
+                                <span>{order.customer?.phone || order.number || 'N/A'}</span>
+                                {order.smsStatus === 'Sent' && <CheckCircle size={11} className="text-green-500" />}
+                              </a>
+                            </div>
+
+                            {/* Right: Time + Note btn */}
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                <Clock size={9} />
+                                <span>{formatTimeAgo(order.date)}</span>
                               </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openNoteModal(order); }}
+                                className={`p-1.5 rounded-lg transition-all border ${
+                                  order.note
+                                    ? 'bg-yellow-500 text-black border-yellow-400 shadow-[0_0_8px_rgba(234,179,8,0.4)]'
+                                    : 'bg-gray-700/80 border-gray-600/60 text-gray-500 hover:text-white'
+                                }`}
+                                title={order.note ? 'Edit Note' : 'Add Note'}
+                              >
+                                <StickyNote size={13} fill={order.note ? 'currentColor' : 'none'} />
+                              </button>
+                            </div>
                           </div>
-                          
-                          {/* Bottom utilities (Note) */}
+
+                          {/* ── Address + Location row ── */}
+                          <div className="px-4 pb-3 flex items-center justify-between gap-2 w-full min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <MapPin size={11} className={`shrink-0 ${color}`} />
+                              <span className="text-gray-400 text-[11px] truncate flex-1 min-w-0 leading-tight pr-1">
+                                {order.district ? order.district : (order.address || 'Address N/A')}
+                              </span>
+                            </div>
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 min-w-max ${
+                              color === 'text-teal-400' ? 'border-teal-500/30 bg-teal-500/10 text-teal-300'
+                              : 'border-orange-500/30 bg-orange-500/10 text-orange-300'
+                            }`}>
+                              {order.shippingMethod === 'Inside Dhaka' ? 'INSIDE DHAKA' : 'OUTSIDE DHAKA'}
+                            </span>
+                          </div>
+
+                          {/* ── Actions row ── */}
+                          <div
+                            className="px-3 py-2.5 bg-gray-900/50 border-t border-gray-700/40 flex items-center gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Status badge */}
+                            <StatusBadge status={order.status} />
+
+                            {/* Steadfast badge */}
+                            {order.trackingCode && (
+                              <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold shrink-0">
+                                <Truck size={10} /> Steadfast
+                              </div>
+                            )}
+
+                            {/* Call status – takes remaining space */}
+                            <div className="ml-auto">
+                              <CallStatusDropdown
+                                currentStatus={order.callStatus}
+                                onStatusChange={(val) => handleCallStatusChange(order.id, val)}
+                              />
+                            </div>
+                          </div>
+
+                          {/* ── Note preview (if exists) ── */}
                           {order.note && (
-                            <div className="flex items-start gap-2 p-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mt-0.5 relative overflow-hidden shadow-inner">
-                               <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
-                               <StickyNote size={12} className="text-yellow-500 mt-0.5 shrink-0" />
-                               <span className="text-xs text-yellow-100/80 italic font-medium pt-0.5">{order.note}</span>
+                            <div className="mx-3 mb-3 mt-1 flex items-start gap-2 p-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-xl relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-[3px] h-full bg-yellow-500 rounded-l-xl" />
+                              <StickyNote size={11} className="text-yellow-500 mt-0.5 shrink-0" />
+                              <span className="text-xs text-yellow-100/80 italic leading-snug">{order.note}</span>
                             </div>
                           )}
-
                         </div>
                       </td>
                     </tr>
