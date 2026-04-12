@@ -2219,11 +2219,7 @@ export default function App() {
                            {/* VIEW BUTTON WITH INDICATOR */}
                            <button
                              onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); setPinnedOrderId(order.id); }}
-                             className={`p-1.5 rounded-lg transition-all relative ${
-                               pinnedOrderId === order.id
-                                 ? "bg-blue-600 text-white"
-                                 : "bg-gray-700 text-gray-300 hover:bg-blue-600 hover:text-white"
-                             }`}
+                             className="p-1.5 rounded-lg transition-all relative border border-transparent bg-gray-700 text-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-500"
                              title="View Details"
                            >
                              <Eye size={16} />
@@ -2344,10 +2340,10 @@ export default function App() {
                     <tr className="md:hidden block mb-3 w-full">
                       <td colSpan="10" className="block p-0 w-full outline-none">
                         <div
-                          onClick={() => setSelectedOrder(order)}
+                          onClick={() => setPinnedOrderId(prev => prev === order.id ? null : order.id)}
                           className={`flex flex-col gap-0 active:scale-[0.99] transition-transform relative overflow-hidden rounded-2xl cursor-pointer ${
                             pinnedOrderId === order.id
-                              ? "bg-indigo-900/40 border border-indigo-500/80 shadow-[0_4px_20px_rgba(99,102,241,0.25)]"
+                              ? "bg-indigo-900/40 border border-indigo-500/80 shadow-[0_4px_20px_rgba(99,102,241,0.25)] ring-1 ring-indigo-500/50 z-10"
                               : isReadyToShip
                                 ? "bg-emerald-950/40 border border-emerald-500/40 shadow-[0_2px_12px_rgba(16,185,129,0.12)]"
                                 : needsWork
@@ -2392,23 +2388,32 @@ export default function App() {
                               </a>
                             </div>
 
-                            {/* Right: Time + Note btn */}
+                            {/* Right: Time + Actions */}
                             <div className="flex flex-col items-end gap-2 shrink-0">
                               <div className="flex items-center gap-1 text-[10px] text-gray-500">
                                 <Clock size={9} />
                                 <span>{formatTimeAgo(order.date)}</span>
                               </div>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); openNoteModal(order); }}
-                                className={`p-1.5 rounded-lg transition-all border ${
-                                  order.note
-                                    ? 'bg-yellow-500 text-black border-yellow-400 shadow-[0_0_8px_rgba(234,179,8,0.4)]'
-                                    : 'bg-gray-700/80 border-gray-600/60 text-gray-500 hover:text-white'
-                                }`}
-                                title={order.note ? 'Edit Note' : 'Add Note'}
-                              >
-                                <StickyNote size={13} fill={order.note ? 'currentColor' : 'none'} />
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); setPinnedOrderId(order.id); }}
+                                  className="p-1.5 rounded-lg transition-all border bg-gray-700/80 border-gray-600/60 text-gray-400 hover:text-white hover:bg-blue-600 hover:border-blue-500 hover:shadow-[0_0_8px_rgba(37,99,235,0.4)]"
+                                  title="View Details"
+                                >
+                                  <Eye size={13} />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openNoteModal(order); }}
+                                  className={`p-1.5 rounded-lg transition-all border ${
+                                    order.note
+                                      ? 'bg-yellow-500 text-black border-yellow-400 shadow-[0_0_8px_rgba(234,179,8,0.4)]'
+                                      : 'bg-gray-700/80 border-gray-600/60 text-gray-500 hover:text-white hover:bg-gray-600'
+                                  }`}
+                                  title={order.note ? 'Edit Note' : 'Add Note'}
+                                >
+                                  <StickyNote size={13} fill={order.note ? 'currentColor' : 'none'} />
+                                </button>
+                              </div>
                             </div>
                           </div>
 
