@@ -683,11 +683,11 @@ const OrderModal = ({
       .replace(/\s*\(থানা:.*?\)/g, "")
       .trim();
     
-    let suffixes = [];
-    if (newDistrict) suffixes.push(`(জেলা: ${newDistrict})`);
-    if (newThana) suffixes.push(`(থানা: ${newThana})`);
+    let prefixes = [];
+    if (newDistrict) prefixes.push(`(জেলা: ${newDistrict})`);
+    if (newThana) prefixes.push(`(থানা: ${newThana})`);
     
-    return suffixes.length > 0 ? `${baseAddress} ${suffixes.join(" ")}`.trim() : baseAddress;
+    return prefixes.length > 0 ? `${prefixes.join(" ")} ${baseAddress}`.trim() : baseAddress;
   };
   
   const availableThanas = useMemo(() => {
@@ -2054,9 +2054,9 @@ export default function App() {
         )}
       </div>
       {/* SEARCH AND DATE FILTER SECTION */}
-      <div className="flex flex-col gap-3 bg-gray-800/50 p-3 md:p-4 rounded-xl border border-gray-700/50 mb-5">
-        {/* Row 1: Search */}
-        <div className="relative w-full">
+      <div className="flex flex-col lg:flex-row gap-3 bg-gray-800/50 p-3 md:p-4 rounded-xl border border-gray-700/50 mb-5 lg:items-center">
+        {/* Search */}
+        <div className="relative w-full lg:flex-1">
           <input
             type="text"
             placeholder="Search by name, phone, or ID..."
@@ -2067,9 +2067,9 @@ export default function App() {
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
         </div>
 
-        {/* Row 2: Date Picker + Rows per page */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex-1 min-w-0">
+        {/* Date Picker + Actions + Rows */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-0">
             <DateRangePicker
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
@@ -2077,7 +2077,54 @@ export default function App() {
               onPresetChange={setSelectedPreset}
             />
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={async () => {
+                if (isSyncing) return;
+                setIsSyncing(true);
+                try {
+                  const { syncActiveCouriers } = await import('@/app/actions/sync-courier');
+                  const res = await syncActiveCouriers();
+                  alert(res.message);
+                  if (res.updated > 0 || res.reverted > 0) window.location.reload();
+                } catch (e) {
+                  console.error(e);
+                  alert("Failed to sync couriers");
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed group min-w-[140px]"
+            >
+              {isSyncing ? <><Loader2 size={14} className="animate-spin" /> Syncing...</> : <><RefreshCw size={14} className="group-hover:animate-spin" /> Sync Courier</>}
+            </button>
+
+            {statusFilter === "In Review" && (
+              <button
+                onClick={() => {
+                  const idsString = filteredOrders.map((o) => o.consignmentId).filter(Boolean).join(", ");
+                  setOrderIdsText(idsString);
+                  setIsOrderIdsModalOpen(true);
+                }}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+              >
+                <Package size={14} /> Consignment IDs
+              </button>
+            )}
+
+            {statusFilter === "ConfirmedProcessing" && (
+              <button
+                onClick={handleOpenBulkCourierModal}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-xl transition-all shadow-md border border-green-500/50 whitespace-nowrap"
+              >
+                <Send size={14} /> Send Bulk Courier
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 lg:ml-auto lg:pl-3 lg:border-l lg:border-gray-700">
             <span className="text-xs text-gray-500 whitespace-nowrap hidden sm:block">Rows:</span>
             <div className="relative">
               <select
@@ -2092,53 +2139,6 @@ export default function App() {
               <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
           </div>
-        </div>
-
-        {/* Row 3: Action Buttons */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={async () => {
-              if (isSyncing) return;
-              setIsSyncing(true);
-              try {
-                const { syncActiveCouriers } = await import('@/app/actions/sync-courier');
-                const res = await syncActiveCouriers();
-                alert(res.message);
-                if (res.updated > 0 || res.reverted > 0) window.location.reload();
-              } catch (e) {
-                console.error(e);
-                alert("Failed to sync couriers");
-              } finally {
-                setIsSyncing(false);
-              }
-            }}
-            disabled={isSyncing}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed group min-w-[140px]"
-          >
-            {isSyncing ? <><Loader2 size={14} className="animate-spin" /> Syncing...</> : <><RefreshCw size={14} className="group-hover:animate-spin" /> Sync Courier</>}
-          </button>
-
-          {statusFilter === "In Review" && (
-            <button
-              onClick={() => {
-                const idsString = filteredOrders.map((o) => o.consignmentId).filter(Boolean).join(", ");
-                setOrderIdsText(idsString);
-                setIsOrderIdsModalOpen(true);
-              }}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
-            >
-              <Package size={14} /> Consignment IDs
-            </button>
-          )}
-
-          {statusFilter === "ConfirmedProcessing" && (
-            <button
-              onClick={handleOpenBulkCourierModal}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-xl transition-all shadow-md border border-green-500/50 whitespace-nowrap"
-            >
-              <Send size={14} /> Send Bulk Courier
-            </button>
-          )}
         </div>
       </div>
       {/* TABLE SECTION */}

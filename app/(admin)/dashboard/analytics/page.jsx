@@ -346,6 +346,7 @@ const DISTRICT_NAME_TO_SVG_ID = {
   'Madaripur':      'Madaripur',
   'Khulna':         'Khulna',
   'Satkhira':       'Satkhira',
+  'Shatkhira':      'Satkhira',  // typo alias found in order data
   'Bagerhat':       'Bagerhat',
   'Narail':         'Narail',
   'Jessore':        'Jessore',
@@ -373,18 +374,24 @@ function districtNameToSvgId(name) {
   return name.replace(/[^a-zA-Z0-9]/g, '');
 }
 
-// --- COLOUR SCALE: single warm family ---
-// Empty → dark charcoal → muted warm brown → vivid amber → bright gold
-// Single hue family reads as much cleaner and more data-driven on dark UI
+// --- COLOUR SCALE: vibrant multi-hue continuous scale ---
 function heatColour(ratio) {
-  if (ratio <= 0) return '#0e141c'; // empty: near-black slate
-  // Step up through warm tones
-  if (ratio < 0.2)  return `rgba(180,100,20,${0.3 + ratio * 2})`;
-  if (ratio < 0.45) return `rgb(${Math.round(180 + (217-180)*(ratio-0.2)/0.25)},${Math.round(80+(119-80)*(ratio-0.2)/0.25)},${Math.round(20+(6-20)*(ratio-0.2)/0.25)})`;
-  if (ratio < 0.72) return `rgb(${Math.round(217+(245-217)*(ratio-0.45)/0.27)},${Math.round(119+(158-119)*(ratio-0.45)/0.27)},${Math.round(6+(11-6)*(ratio-0.45)/0.27)})`;
-  // Top tier: vivid gold
-  const t = (ratio - 0.72) / 0.28;
-  return `rgb(${Math.round(245+(253-245)*t)},${Math.round(158+(224-158)*t)},${Math.round(11+(71-11)*t)})`;
+  if (ratio <= 0) return '#1e293b'; // slate-800 for empty
+  if (ratio < 0.01) return 'rgb(30, 64, 175)'; // blue-800
+  if (ratio <= 0.3) {
+    const t = (ratio - 0.01) / 0.29;
+    return `rgb(${Math.round(37 + (147-37)*t)}, ${Math.round(99 + (51-99)*t)}, ${Math.round(235 + (234-235)*t)})`; // blue-600 to purple-600
+  }
+  if (ratio <= 0.6) {
+    const t = (ratio - 0.3) / 0.3;
+    return `rgb(${Math.round(147 + (225-147)*t)}, ${Math.round(51 + (29-51)*t)}, ${Math.round(234 + (72-234)*t)})`; // purple-600 to rose-600
+  }
+  if (ratio <= 0.8) {
+    const t = (ratio - 0.6) / 0.2;
+    return `rgb(${Math.round(225 + (245-225)*t)}, ${Math.round(29 + (158-29)*t)}, ${Math.round(72 + (11-72)*t)})`; // rose-600 to amber-500
+  }
+  const t = (ratio - 0.8) / 0.2;
+  return `rgb(${Math.round(245 + (253-245)*t)}, ${Math.round(158 + (224-158)*t)}, ${Math.round(11 + (71-11)*t)})`; // amber-500 to yellow-300
 }
 
 // --- BANGLADESH MAP COMPONENT ---
@@ -421,41 +428,45 @@ const BangladeshMapChart = ({ districtData }) => {
           .replace(/<\?xml[^?]*\?>/g, '')
           // Strip the SVG's own <style> block
           .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-          .replace(/<svg\b/, '<svg width="100%" height="100%" style="overflow:visible;display:block;" ');
+          .replace(/<svg\b/, '<svg id="bangladesh-map-svg" width="100%" height="100%" style="overflow:visible;display:block;" ');
 
         // Inject our own style block right after opening <svg> tag.
-        // The !important overrides on every .st class are the nuclear option:
-        // even if the strip regex fails or the browser caches old styles, 
-        // these rules guarantee our fills win.
+        // We MUST prefix every rule with #bangladesh-map-svg, otherwise this injected <style>
+        // will leak out and apply globally to the entire React application, hiding all Lucide icons and Recharts data.
         cleaned = cleaned.replace(
           /(<svg[^>]*>)/,
           `$1<style>
-            /* ── Kill ALL baked-in SVG class fills ── */
-            .st0,.st1,.st2,.st3,.st4,.st5,.st6,.st7,
-            .st8,.st9,.st10,.st11,.st12,.st13,.st14,
-            .st15,.st16,.st17,.st18,.st19,.st20,.st21,
-            .st22,.st23,.st24,.st25,.st26,.st27 {
-              fill: #0e141c !important;
-              opacity: 1 !important;
-              stroke: none !important;
+            /* ── Hide ALL baked-in legend paths and junk ── */
+            #bangladesh-map-svg path:not([id$="_District"]),
+            #bangladesh-map-svg polygon:not([id$="_District"]),
+            #bangladesh-map-svg rect, 
+            #bangladesh-map-svg circle, 
+            #bangladesh-map-svg line, 
+            #bangladesh-map-svg polyline {
+              display: none !important;
             }
-            /* Division groups: no inherited fill or opacity */
-            g { fill: none !important; opacity: 1 !important; }
-            /* District paths: our JS inline styles will override this */
-            [id$="_District"] {
-              fill: #0e141c !important;
+            
+            /* Division groups */
+            #bangladesh-map-svg g { fill: none !important; opacity: 1 !important; }
+            
+            /* District paths */
+            #bangladesh-map-svg [id$="_District"] {
+              stroke: rgba(255,255,255,0.15) !important;
+              stroke-width: 0.5px !important;
               paint-order: stroke fill;
               transition: fill 0.15s, filter 0.15s;
             }
+            
             /* District labels */
-            text {
-              font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-              font-size: 9.5px;
-              font-weight: 600;
-              fill: rgba(255,255,255,0.6) !important;
-              pointer-events: none;
-              letter-spacing: 0.015em;
-              text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            #bangladesh-map-svg text, 
+            #bangladesh-map-svg tspan {
+              font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important;
+              font-size: 10px !important;
+              font-weight: 700 !important;
+              fill: rgba(255,255,255,0.7) !important;
+              stroke: none !important;
+              pointer-events: none !important;
+              text-shadow: 0 1px 4px rgba(0,0,0,0.9);
             }
           </style>`
         );
@@ -464,37 +475,33 @@ const BangladeshMapChart = ({ districtData }) => {
       })
       .catch(console.error);
   }, []);
-
-  // 2. Paint / repaint district paths — runs whenever SVG or data changes
-  useEffect(() => {
-    if (!svgContent || !containerRef.current) return;
-    const svgEl = containerRef.current.querySelector('svg');
-    if (!svgEl) return;
-
+  // 2. Dynamic Styles for Heatmap & Hover
+  const dynamicStyles = useMemo(() => {
     const max = districtData.length > 0 ? districtData[0].orders : 1;
+    let css = `
+      #bangladesh-map-svg [id$="_District"] {
+        cursor: pointer;
+      }
+      #bangladesh-map-svg [id$="_District"]:hover {
+        filter: drop-shadow(0 0 10px rgba(255,255,255,0.5)) !important;
+        stroke: rgba(255,255,255,0.9) !important;
+        stroke-width: 1.5px !important;
+      }
+    `;
 
-    // Remove baked-in opacity from division groups
-    svgEl.querySelectorAll('g[class]').forEach(g => {
-      g.style.opacity = '1';
-      g.style.fill    = 'none';
+    districtData.forEach((entry) => {
+      const color = fillMap[entry.svgId] || '#1e293b';
+      const ratio = entry.orders / max;
+      css += `
+        #bangladesh-map-svg #${entry.svgId}_District {
+          fill: ${color} !important;
+          stroke: ${ratio > 0 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)'} !important;
+          ${ratio > 0.7 ? `filter: drop-shadow(0 0 5px ${color});` : ''}
+        }
+      `;
     });
-
-    // Reset ALL individual district paths
-    svgEl.querySelectorAll('[id$="_District"]').forEach(el => {
-      const svgId = el.id.replace('_District', '');
-      const entry = districtData.find(d => d.svgId === svgId);
-      const ratio  = entry && max > 0 ? entry.orders / max : 0;
-
-      el.style.setProperty('fill', fillMap[svgId] || '#0e141c', 'important');
-      el.style.cursor      = 'pointer';
-      el.style.transition  = 'fill 0.15s, filter 0.15s';
-      el.style.filter      = ratio > 0.7
-        ? `drop-shadow(0 0 5px ${fillMap[svgId]}aa)`  // glow on hot districts
-        : 'none';
-      el.style.setProperty('stroke', ratio > 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)', 'important');
-      el.style.strokeWidth = '0.5';
-    });
-  }, [svgContent, fillMap, districtData]);
+    return css;
+  }, [districtData, fillMap]);
 
   // 3. Tooltip hover — only active when not dragging
   const handleMouseMove = useCallback((e) => {
@@ -502,28 +509,15 @@ const BangladeshMapChart = ({ districtData }) => {
 
     const target = e.target.closest('[id$="_District"]');
 
-    // restore previously hovered element
-    if (hoveredEl.current && hoveredEl.current !== target) {
-      const prevId = hoveredEl.current.id.replace('_District', '');
-      hoveredEl.current.style.setProperty('fill', fillMap[prevId] || '#0e141c', 'important');
-      hoveredEl.current.style.filter = 'none';
-    }
-
     if (!target) {
-      hoveredEl.current = null;
       setTooltip(t => ({ ...t, visible: false }));
       return;
-    }
-
-    // brighten hovered district
-    if (hoveredEl.current !== target) {
-      target.style.filter = 'brightness(1.5) drop-shadow(0 0 6px rgba(255,255,255,0.35))';
-      hoveredEl.current = target;
     }
 
     const svgId = target.id.replace('_District', '');
     const entry = districtData.find(d => d.svgId === svgId);
     const rect  = containerRef.current.getBoundingClientRect();
+    
     setTooltip({
       visible: true,
       x: e.clientX - rect.left + 14,
@@ -535,30 +529,17 @@ const BangladeshMapChart = ({ districtData }) => {
         rank    : entry ? districtData.indexOf(entry) + 1 : null,
       }
     });
-  }, [districtData, fillMap, dragging]);
+  }, [districtData, dragging]);
 
   const handleMouseLeave = useCallback(() => {
-    if (hoveredEl.current) {
-      const prevId = hoveredEl.current.id.replace('_District', '');
-      hoveredEl.current.style.setProperty('fill', fillMap[prevId] || '#0e141c', 'important');
-      hoveredEl.current.style.filter = 'none';
-      hoveredEl.current = null;
-    }
     setTooltip(t => ({ ...t, visible: false }));
-  }, [fillMap]);
+  }, []);
 
   // ── Drag/Pan — window-level listeners so fast mouse moves don't drop the drag ──
   const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return; // left click only
     e.preventDefault();
 
-    // restore hover state immediately on click
-    if (hoveredEl.current) {
-      const prevId = hoveredEl.current.id.replace('_District', '');
-      hoveredEl.current.style.setProperty('fill', fillMap[prevId] || '#0e141c', 'important');
-      hoveredEl.current.style.filter = 'none';
-      hoveredEl.current = null;
-    }
     setTooltip(t => ({ ...t, visible: false }));
 
     dragStart.current = { x: e.clientX, y: e.clientY };
@@ -579,7 +560,7 @@ const BangladeshMapChart = ({ districtData }) => {
 
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup',   onUp);
-  }, [fillMap]);
+  }, []);
 
   const handleMouseUp = () => {}; // handled by window listener above
 
@@ -672,6 +653,7 @@ const BangladeshMapChart = ({ districtData }) => {
         onMouseLeave={handleMouseLeave}
         onMouseDown={handleMouseDown}
       >
+        <style dangerouslySetInnerHTML={{ __html: dynamicStyles }} />
         <div
           className="w-full h-full"
           style={{
@@ -727,7 +709,7 @@ const BangladeshMapChart = ({ districtData }) => {
           className="flex-1 h-1.5 rounded-full"
           style={{
             background:
-              'linear-gradient(to right, #0e141c, rgba(180,100,20,0.6), rgb(180,80,20), rgb(217,119,6), rgb(245,158,11), rgb(253,224,71))',
+              'linear-gradient(to right, #1e293b, rgb(37,99,235), rgb(147,51,234), rgb(225,29,72), rgb(245,158,11), rgb(253,224,71))',
           }}
         />
         <span className="text-[9px] text-slate-500 uppercase tracking-widest font-medium">Highest</span>
@@ -1331,7 +1313,7 @@ export default function AnalyticsDashboard() {
               {/* Top districts leaderboard */}
               <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-3">Top Districts by Orders</p>
               <div className="space-y-2.5 overflow-y-auto flex-1 pr-1" style={{ maxHeight: '400px' }}>
-                {(analytics?.districtData || []).slice(0, 15).map((item, idx) => {
+                {(analytics?.districtData || []).map((item, idx) => {
                   const maxOrders   = analytics?.districtData?.[0]?.orders || 1;
                   const pct         = ((item.orders / maxOrders) * 100);
                   const barColour   = heatColour(idx === 0 ? 1 : pct / 100);
