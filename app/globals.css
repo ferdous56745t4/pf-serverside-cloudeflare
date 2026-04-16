@@ -248,3 +248,49 @@ button:active .animate-ripple-origin {
 section#read {
   scroll-margin-top: -1110px; /* Adjust based on your header height */
 }
+/* ----------------------------------------------------------
+   CUSTOM SCROLLBAR  globally applied to all scrollable areas
+   ---------------------------------------------------------- */
+
+/* Chrome / Edge / Safari */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(99, 102, 241, 0.8) 0%,
+    rgba(139, 92, 246, 0.7) 50%,
+    rgba(59, 130, 246, 0.6) 100%
+  );
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(129, 132, 255, 1) 0%,
+    rgba(168, 122, 255, 1) 50%,
+    rgba(96, 165, 250, 1) 100%
+  );
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.7) transparent;
+}
