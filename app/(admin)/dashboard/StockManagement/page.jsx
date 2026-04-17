@@ -49,8 +49,8 @@ export default function StockManagementPage() {
 
   // Facebook Cost Form State
   const [isSavingFbCost, setIsSavingFbCost] = useState(false);
-  const [fbDollars, setFbDollars] = useState('');
-  const [fbBdtRate, setFbBdtRate] = useState('');
+  const [fbTotalBdt, setFbTotalBdt] = useState('');
+  const [fbDollarRate, setFbDollarRate] = useState('');
 
   const [baselineDate, setBaselineDate] = useState(null);
   const [newCollectionsAmount, setNewCollectionsAmount] = useState(0);
@@ -151,16 +151,21 @@ export default function StockManagementPage() {
 
   const handleFbCostSubmit = async (e) => {
     e.preventDefault();
-    if (!fbDollars || isNaN(fbDollars) || fbDollars <= 0) return;
-    if (!fbBdtRate || isNaN(fbBdtRate) || fbBdtRate <= 0) return;
+    const totalBdt = parseFloat(fbTotalBdt);
+    const dollarRate = parseFloat(fbDollarRate);
+    if (!totalBdt || isNaN(totalBdt) || totalBdt <= 0) return;
+    if (!dollarRate || isNaN(dollarRate) || dollarRate <= 0) return;
+    
+    // Derive dollars bought: how many dollars you got for the BDT spent
+    const derivedDollars = totalBdt / dollarRate;
     
     setIsSavingFbCost(true);
     try {
-      await addFacebookCost(parseFloat(fbDollars), parseFloat(fbBdtRate));
+      await addFacebookCost(derivedDollars, dollarRate);
       
       // Reset form
-      setFbDollars('');
-      setFbBdtRate('');
+      setFbTotalBdt('');
+      setFbDollarRate('');
       
       // Refresh list
       const history = await getFacebookCosts();
@@ -719,44 +724,49 @@ export default function StockManagementPage() {
           <form onSubmit={handleFbCostSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">Dollars Bought ($)</label>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Total BDT Spent (৳)</label>
                 <input 
                   type="number"
                   min="0.01"
                   step="0.01"
                   required
-                  value={fbDollars}
-                  onChange={(e) => setFbDollars(e.target.value)}
+                  value={fbTotalBdt}
+                  onChange={(e) => setFbTotalBdt(e.target.value)}
                   className="w-full bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  placeholder="e.g. 10.00"
+                  placeholder="e.g. 1200.00"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">BDT Rate (৳)</label>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Dollar Price (৳ per $1)</label>
                 <input 
                   type="number"
                   min="0.01"
                   step="0.01"
                   required
-                  value={fbBdtRate}
-                  onChange={(e) => setFbBdtRate(e.target.value)}
+                  value={fbDollarRate}
+                  onChange={(e) => setFbDollarRate(e.target.value)}
                   className="w-full bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  placeholder="e.g. 120"
+                  placeholder="e.g. 127"
                 />
               </div>
             </div>
 
+            {/* Dollars received result */}
             <div className="bg-indigo-900/20 rounded-xl p-4 flex justify-between items-center border border-indigo-900/30">
-               <span className="text-gray-400 text-sm font-medium">Auto-Calculated Total:</span>
+               <span className="text-gray-400 text-sm font-medium">Dollars You Got:</span>
                <span className="text-xl font-bold text-indigo-400">
-                 ৳ {((parseFloat(fbDollars) || 0) * (parseFloat(fbBdtRate) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                 $ {(
+                   (parseFloat(fbTotalBdt) > 0 && parseFloat(fbDollarRate) > 0)
+                     ? (parseFloat(fbTotalBdt) / parseFloat(fbDollarRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                     : '0.00'
+                 )}
                </span>
             </div>
 
             <button 
               type="submit"
-              disabled={isSavingFbCost || !fbDollars || !fbBdtRate}
+              disabled={isSavingFbCost || !fbTotalBdt || !fbDollarRate}
               className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition-colors disabled:opacity-50 shadow-lg shadow-indigo-900/20 mt-2"
             >
               {isSavingFbCost ? <RefreshCw size={20} className="animate-spin" /> : <Save size={20} />}
