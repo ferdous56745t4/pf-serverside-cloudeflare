@@ -19,6 +19,25 @@ export async function POST(req: Request) {
     const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : undefined;
     const userAgent = req.headers.get('user-agent') || undefined;
 
+    // --- IP GEOLOCATION: resolve real city & state from client IP ---
+    let geoCity: string | undefined;
+    let geoState: string | undefined;
+    if (clientIp && clientIp !== '127.0.0.1' && clientIp !== '::1') {
+      try {
+        // ipapi.co: server-to-server (no CORS issues), free tier 1000 req/day
+        const geoRes = await fetch(`https://ipapi.co/${clientIp}/json/`, {
+          headers: { 'User-Agent': 'NextJS-CAPI/1.0' },
+        });
+        if (geoRes.ok) {
+          const geo = await geoRes.json();
+          if (geo.city) geoCity = geo.city.toLowerCase();
+          if (geo.region) geoState = geo.region.toLowerCase();
+        }
+      } catch (_) {
+        // Geo lookup failed silently — don't block the tracking event
+      }
+    }
+
     // Build the CAPI payload
     const capiPayload = {
       data: [
@@ -35,11 +54,22 @@ export async function POST(req: Request) {
             ph: hashData(userData.ph),
             fn: hashData(userData.fn),
             ln: hashData(userData.ln),
+            // Geo signals: real values from IP geolocation lookup
+            country: hashData(userData.country || 'bd'),
+            ...(geoCity ? { ct: hashData(geoCity) } : userData.ct ? { ct: hashData(userData.ct) } : {}),
+            ...(geoState ? { st: hashData(geoState) } : userData.st ? { st: hashData(userData.st) } : {}),
+            ...(userData.zp ? { zp: hashData(userData.zp) } : {}),
+            // Facebook cookie identifiers — NOT hashed, sent raw
             fbc: userData.fbc,
             fbp: userData.fbp,
-            ...userData.external_id ? { external_id: hashData(userData.external_id) } : {},
+            // External ID for cross-device matching — hashed
+            ...(userData.external_id ? { external_id: hashData(userData.external_id) } : {}),
           },
-          custom_data: customData,
+          custom_data: {
+            ...customData,
+            // Ensure delivery_category is always set for Purchase events
+            ...(eventName === 'Purchase' ? { delivery_category: customData.delivery_category || 'home_delivery' } : {}),
+          },
         },
       ],
       ...(process.env.FACEBOOK_TEST_EVENT_CODE ? { test_event_code: process.env.FACEBOOK_TEST_EVENT_CODE } : {})
@@ -52,6 +82,8 @@ export async function POST(req: Request) {
     console.log('[CAPI] eventName:', eventName);
     console.log('[CAPI] pixelId:', pixelId ? `${pixelId.substring(0, 6)}...` : 'MISSING');
     console.log('[CAPI] accessToken:', accessToken ? `${accessToken.substring(0, 8)}...` : 'MISSING');
+    console.log('[CAPI] geoCity:', geoCity || 'not resolved');
+    console.log('[CAPI] geoState:', geoState || 'not resolved');
 
     if (!pixelId || !accessToken) {
       console.error("[CAPI] FATAL: FB_PIXEL_ID or FB_ACCESS_TOKEN missing. CAPI event not sent.");

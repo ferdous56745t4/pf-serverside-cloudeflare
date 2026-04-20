@@ -55,23 +55,59 @@ const HeroSection = () => {
   const sectionRef = useRef(null);
   const hasAddedToCart = useRef(false);
 
+  // --- COOKIE HELPER (client-side) ---
+  const getClientCookie = (name) => {
+    if (typeof document === 'undefined') return undefined;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift();
+    return undefined;
+  };
+
   // --- HELPER FOR CURRENT ADVANCED PARAMETERS ---
   const getAdvancedMatchingData = () => {
       let ud = {
-         country: "bd",
-         st: "dhaka",
-         ct: "dhaka"
+         country: "bd", // Country is always Bangladesh
+         // ct and st are resolved from IP geolocation on the server
       };
       
-      const p = formData.number || localStorage.getItem("billing_phone");
-      if (p) ud.ph = p.trim();
+      // Phone: normalize and format per Facebook spec (no + prefix, with country code)
+      const rawPhone = formData.number || localStorage.getItem("billing_phone");
+      if (rawPhone) {
+        let ph = rawPhone.trim().replace(/\s+/g, '').replace(/-/g, '');
+        if (ph.startsWith('01') && ph.length === 11) ph = '880' + ph;
+        else if (ph.startsWith('+')) ph = ph.replace('+', '');
+        ud.ph = ph;
+      }
       
+      // Name: must be lowercase for hashing per FB spec
       const n = formData.name || localStorage.getItem("billing_name");
       if (n) {
          const np = n.trim().split(" ");
-         if (np.length > 0) ud.fn = np[0];
-         if (np.length > 1) ud.ln = np.slice(1).join(" ");
+         if (np.length > 0) ud.fn = np[0].toLowerCase();
+         if (np.length > 1) ud.ln = np.slice(1).join(" ").toLowerCase();
       }
+
+      // Client IP (fetched at page load)
+      if (clientInfo.ip) ud.client_ip_address = clientInfo.ip;
+
+      // User Agent
+      if (typeof navigator !== 'undefined') ud.client_user_agent = navigator.userAgent;
+
+      // External ID: device_id for cross-device matching
+      const deviceId = behaviorData.device_id || localStorage.getItem('device_id');
+      if (deviceId) ud.external_id = deviceId;
+
+      // fbc: Facebook Click ID — cookie first, then constructed from fbclid param, then localStorage
+      const fbcCookie = getClientCookie('_fbc');
+      const fbcConstructed = localStorage.getItem('_fbc_constructed');
+      ud.fbc = fbcCookie || fbcConstructed || undefined;
+
+      // fbp: Facebook Browser ID — cookie first, then localStorage backup
+      const fbpCookie = getClientCookie('_fbp');
+      const fbpBackup = localStorage.getItem('_fbp_backup');
+      ud.fbp = fbpCookie || fbpBackup || undefined;
+
       return ud;
   };
 
@@ -103,6 +139,21 @@ const HeroSection = () => {
             
             // Setup Analytics
             const params = new URLSearchParams(window.location.search);
+
+            // --- FBC CONSTRUCTION FROM fbclid URL PARAM ---
+            // This is critical for ad traffic where _fbc cookie may not yet be set
+            const fbclid = params.get('fbclid');
+            if (fbclid) {
+              const constructedFbc = `fb.1.${Date.now()}.${fbclid}`;
+              localStorage.setItem('_fbc_constructed', constructedFbc);
+            }
+
+            // --- FBP BACKUP in localStorage for Safari/iOS ITP ---
+            const fbpCookieVal = `; ${document.cookie}`.split(`; _fbp=`)[1]?.split(';')[0];
+            if (fbpCookieVal) localStorage.setItem('_fbp_backup', fbpCookieVal);
+
+            // Store landing page with fbclid for future use
+            localStorage.setItem('landing_page', window.location.href);
             setMarketingData({
                 utm_source: params.get("utm_source") || "direct",
                 utm_medium: params.get("utm_medium") || "none",

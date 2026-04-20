@@ -38,14 +38,24 @@ export const firePixelEvent = (eventName: string, data: any, eventId: string) =>
   
 export const sendServerEvent = async (eventName: string, customData: any, userData: any, eventId: string) => {
     try {
+        // Resolve fbc: cookie > constructed from fbclid > passed userData
+        const fbcFromCookie = getCookie('_fbc');
+        const fbcConstructed = typeof localStorage !== 'undefined' ? (localStorage.getItem('_fbc_constructed') ?? undefined) : undefined;
+        const fbc = userData.fbc || fbcFromCookie || fbcConstructed;
+
+        // Resolve fbp: cookie > localStorage backup (for Safari ITP)
+        const fbpFromCookie = getCookie('_fbp');
+        const fbpBackup = typeof localStorage !== 'undefined' ? (localStorage.getItem('_fbp_backup') ?? undefined) : undefined;
+        const fbp = userData.fbp || fbpFromCookie || fbpBackup;
+
         const payload = {
             eventName,
             eventSourceUrl: typeof window !== 'undefined' ? window.location.href : '',
             userData: {
                 ...userData,
-                fbc: getCookie('_fbc'),
-                fbp: getCookie('_fbp'),
-                client_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+                fbc,
+                fbp,
+                client_user_agent: userData.client_user_agent || (typeof navigator !== 'undefined' ? navigator.userAgent : undefined),
             },
             customData,
             eventId,

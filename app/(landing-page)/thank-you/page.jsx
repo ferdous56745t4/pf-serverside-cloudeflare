@@ -40,14 +40,43 @@ function ThankYouContent() {
       try {
         const savedPhone = localStorage.getItem("billing_phone");
         const savedName = localStorage.getItem("billing_name");
-        if (savedPhone) userData.ph = savedPhone.trim();
+        
+        // Phone number — normalize Bangladesh numbers
+        if (savedPhone) {
+          let ph = savedPhone.trim().replace(/\s+/g, '');
+          // Normalize BD number: 01XXXXXXXXX → 8801XXXXXXXXX
+          if (ph.startsWith('01') && ph.length === 11) ph = '880' + ph;
+          else if (ph.startsWith('+')) ph = ph.replace('+', '');
+          userData.ph = ph;
+        }
+
+        // Name split into first/last
         if (savedName) {
            const nameParts = savedName.trim().split(" ");
-           if (nameParts.length > 0) userData.fn = nameParts[0];
-           if (nameParts.length > 1) userData.ln = nameParts.slice(1).join(" ");
+           if (nameParts.length > 0) userData.fn = nameParts[0].toLowerCase();
+           if (nameParts.length > 1) userData.ln = nameParts.slice(1).join(" ").toLowerCase();
         }
-        // If external ID is provided as order ID
+
+        // Country — always Bangladesh (city/state resolved from IP on server)
+        userData.country = 'bd';
+
+        // External ID — use orderId for cross-device matching
         userData.external_id = orderId;
+
+        // Facebook Click ID and Browser ID from cookies (critical for match quality)
+        const getCookie = (name) => {
+          const value = `; ${document.cookie}`;
+          const parts = value.split(`; ${name}=`);
+          if (parts.length === 2) return parts.pop().split(';').shift();
+          return undefined;
+        };
+        userData.fbc = getCookie('_fbc');
+        userData.fbp = getCookie('_fbp');
+
+        // Client IP from state (already fetched at page load)
+        userData.client_ip_address = undefined; // will be filled by server from headers
+        userData.client_user_agent = navigator.userAgent;
+        
       } catch(e) {}
 
       // --- LTV, Profit Margin, and Customer Status ---
@@ -68,16 +97,16 @@ function ThankYouContent() {
         {
           average_order: totalValue,
           category_name: categoryName,
-          coupon_used: "No", // Update depending on your checkout logic
+          coupon_used: "No",
           predicted_ltv: predictedLtv, 
-          profit_margin: PRODUCT_PROFIT * itemQuantity, // Calculate dynamic profit
-          new_customer: isNewCustomer, // True or False flag natively supported
+          profit_margin: PRODUCT_PROFIT * itemQuantity,
+          new_customer: isNewCustomer,
           shipping: shippingValue,
           shipping_cost: shippingValue,
-          tax: 0, // Calculate tax if applicable
+          delivery_category: 'home_delivery', // Required for EMQ boost
+          tax: 0,
           total: totalValue,
-          transactions_count: 1, // Single transaction event
-          // remaining parameters (traffic_source, event_url, etc.) are automatically handled by the helper logic
+          transactions_count: 1,
         },
         userData
       );
