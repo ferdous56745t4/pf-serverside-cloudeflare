@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-export default function FacebookPixel() {
+function PixelTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -19,11 +19,17 @@ export default function FacebookPixel() {
         }
         
         ReactPixel.init(pixelId);
-        
         // Let lib/fbEvents handle the pageView to keep Event IDs synced, or just rely on manual trigger
-        // Just for initialization here
       });
   }, [pathname, searchParams]);
 
   return null;
+}
+
+export default function FacebookPixel() {
+  return (
+    <Suspense fallback={null}>
+      <PixelTracker />
+    </Suspense>
+  );
 }
