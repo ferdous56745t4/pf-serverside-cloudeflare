@@ -87,13 +87,13 @@ const ReviewCard = ({ review }) => {
       </div>
 
       {/* ── Highlighted quote strip ── */}
-      <div className={`mx-2 -mt-2 mb-2 rounded-xl px-4 py-3 border ${review.badgeBg} ${review.badgeBorder} flex items-start gap-3 relative z-10`}>
-        <span className="text-2xl leading-none flex-shrink-0 mt-0.5">{review.badgeIcon}</span>
+      <div className={`mx-2 -mt-2 mb-2 rounded-xl px-4 py-4 border ${review.badgeBg} ${review.badgeBorder} flex items-start gap-4 relative z-10`}>
+        <span className="text-3xl leading-none flex-shrink-0 mt-0.5">{review.badgeIcon}</span>
         <div>
-          <p className={`font-extrabold text-base md:text-lg bg-clip-text text-transparent bg-gradient-to-r ${review.highlightColor} leading-snug`}>
+          <p className={`font-extrabold text-lg md:text-xl bg-clip-text text-transparent bg-gradient-to-r ${review.highlightColor} leading-tight`}>
             {review.highlight}
           </p>
-          <p className="text-slate-700 text-sm mt-1.5 leading-relaxed font-medium">{review.summary}</p>
+          <p className="text-slate-800 text-base md:text-lg mt-2 leading-relaxed font-semibold">{review.summary}</p>
         </div>
       </div>
     </div>
@@ -107,24 +107,24 @@ const GroupReviews = () => {
       <div className="absolute top-10 right-0 w-96 h-96 bg-blue-100/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-100/40 rounded-full blur-[100px] pointer-events-none mix-blend-multiply" />
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto relative z-10">
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-8">
           <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full mb-3">
             <ThumbsUp size={14} className="text-blue-600" fill="currentColor" />
-            <span className="text-blue-700 font-bold text-xs uppercase tracking-wider">
+            <span className="text-blue-700 font-bold text- uppercase tracking-wider">
               গ্রুপ থেকে রিয়েল স্টোরি
             </span>
           </div>
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 mb-3 leading-tight">
+          <h2 className="text-4xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-4 leading-tight">
             বইটি পড়তে শুরু করেছেন, <br className="md:hidden" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
               রেজাল্ট পেতেও শুরু করেছেন!
             </span>
           </h2>
-          <p className="text-sm md:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
-            আমাদের প্রাইভেট গ্রুপের সদস্যরা বইটি হাতে পেয়েই তাদের অভিজ্ঞতা শেয়ার করছেন — কেউ কোটি টাকার লস থেকে বেঁচেছেন, কেউ মাত্র ৫ পেজ পড়েই অনেক ভ্যালু পেয়েছেন।
+          <p className="text-xl md:text-lg font-medium text-slate-600 leading-relaxed max-w-2xl mx-auto px-1">
+            আমাদের প্রাইভেট গ্রুপের সদস্যরা বইটি হাতে পেয়েই তাদের অভিজ্ঞতা শেয়ার করছেন, কেউ কোটি টাকার লস থেকে বেঁচেছেন, কেউ মাত্র ৫ পেজ পড়েই অনেক ভ্যালু পেয়েছেন।
           </p>
         </div>
 
@@ -137,7 +137,6 @@ const GroupReviews = () => {
 
         {/* Bottom CTA nudge */}
         <div className="text-center mt-14">
-          <p className="text-slate-500 text-sm md:text-base mb-4">আপনিও কি এই গ্রুপে যোগ দিতে চান?</p>
           <a
             href="#order"
             className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-bold py-4 px-10 rounded-full text-lg shadow-xl shadow-orange-500/25 hover:-translate-y-0.5 transition-all duration-300"

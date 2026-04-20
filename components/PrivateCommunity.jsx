@@ -70,7 +70,7 @@ const PrivateCommunity = () => {
         <div className="absolute top-[20%] -left-[10%] w-[400px] h-[400px] bg-orange-50 rounded-full blur-[100px] mix-blend-multiply"></div>
       </div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px- relative z-10">
         
         {/* HEADLINE SECTION */}
         <div className="text-center max-w-3xl mx-auto mb-12">
@@ -138,13 +138,13 @@ const PrivateCommunity = () => {
               <Lock size={14} className="text-red-600" />
               <span className="text-red-700 font-bold text-xs uppercase tracking-wider">Secret Exclusive Group</span>
             </div>
-            <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">
+            <h3 className="text-4xl md:text-3xl font-extrabold text-slate-900 leading-tight">
               বইটি কিনলেই পাবেন{" "}
               <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
                 সিক্রেট গ্রুপে ইনভাইট
               </span>
             </h3>
-            <p className="text-slate-500 mt-2 text-sm md:text-base max-w-xl mx-auto">
+            <p className="text-slate-500 mt-2 text-xl md:text-base max-w-xl mx-auto">
               যেখানে ৬০০+ উদ্যোক্তারা প্রতিদিন নেটওয়ার্ক করছেন, সমস্যার সমাধান খুঁজছেন, এবং একে অপরকে সাহায্য করছেন
             </p>
           </div>
@@ -179,11 +179,7 @@ const PrivateCommunity = () => {
                     </div>
                   </div>
 
-                  {/* Private badge - top right */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full">
-                    <Lock size={11} />
-                    <span>Private Group</span>
-                  </div>
+                 
                 </div>
 
                 {/* RIGHT: Info panel */}
@@ -206,33 +202,32 @@ const PrivateCommunity = () => {
                         { icon: <Shirt size={14} />, text: "পোশাক, অর্গানিক ফুড, ইলেকট্রনিক্স সব ক্যাটাগরির উদ্যোক্তারা" },
                         { icon: <MessageSquare size={14} />, text: "সরাসরি আলোচনা ও সমস্যার সমাধান পাবেন" },
                         { icon: <TrendingUp size={14} />, text: "বিজনেস টিপস, আইডিয়া ও স্ট্র্যাটেজি শেয়ার" },
-                        { icon: <Users size={14} />, text: "নেটওয়ার্কিং — পাশাপাশি বাড়বে আপনার ব্যবসাও" },
+                        { icon: <Users size={14} />, text: "নেটওয়ার্কিং,পাশাপাশি বাড়বে আপনার ব্যবসাও" },
                       ].map((item, i) => (
                         <li key={i} className="flex items-start gap-2.5">
                           <span className="mt-0.5 w-5 h-5 shrink-0 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center">
                             {item.icon}
                           </span>
-                          <span className="text-sm text-slate-600 leading-snug">{item.text}</span>
+                          <span className="text- text-slate-600 leading-snug">{item.text}</span>
                         </li>
                       ))}
                     </ul>
 
                     {/* Category tags */}
-                    <div className="flex flex-wrap gap-1.5 mb-5">
-                      {["Clothing", "Organic Food", "Electronics", "Jewelry", "Handicraft", "আরও..."].map((cat) => (
-                        <span key={cat} className="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">
-                          {cat}
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {[
+                        { name: "Clothing", style: "bg-pink-100 text-pink-700 border-pink-200" },
+                        { name: "Organic Food", style: "bg-green-100 text-green-700 border-green-200" },
+                        { name: "Electronics", style: "bg-blue-100 text-blue-700 border-blue-200" },
+                        { name: "Jewelry", style: "bg-purple-100 text-purple-700 border-purple-200" },
+                        { name: "Handicraft", style: "bg-amber-100 text-amber-700 border-amber-200" },
+                        { name: "আরও...", style: "bg-slate-100 text-slate-700 border-slate-200" }
+                      ].map((cat) => (
+                        <span key={cat.name} className={`text-sm font-bold border px-3 py-1 rounded-full shadow-sm hover:scale-105 transition-transform ${cat.style}`}>
+                          {cat.name}
                         </span>
                       ))}
                     </div>
-                  </div>
-
-                  {/* Access note */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-                    <Lock size={14} className="text-amber-600 shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-700 font-semibold leading-snug">
-                      শুধুমাত্র বই অর্ডার করলেই পাবেন এই প্রাইভেট গ্রুপের এক্সক্লুসিভ ইনভাইটেশন লিংক
-                    </p>
                   </div>
                 </div>
               </div>
@@ -242,9 +237,6 @@ const PrivateCommunity = () => {
 
         {/* CTA SECTION */}
         <div className="mt-10 text-center">
-          <p className="text-lg md:text-xl font-semibold text-slate-800 mb-6">
-            আপনার পেজকেও কি <span className="text-blue-600">নেক্সট বিগ ব্র্যান্ড</span> হিসেবে গড়তে চান?
-          </p>
           
           <div className="flex flex-col items-center gap-4">
             <a 
