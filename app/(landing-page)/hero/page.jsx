@@ -141,11 +141,18 @@ const HeroSection = () => {
             const params = new URLSearchParams(window.location.search);
 
             // --- FBC CONSTRUCTION FROM fbclid URL PARAM ---
-            // This is critical for ad traffic where _fbc cookie may not yet be set
+            // Mirrors exactly what Facebook's Parameter Builder SDK does:
+            // Format: fb.{version}.{timestamp}.{fbclid}
             const fbclid = params.get('fbclid');
             if (fbclid) {
-              const constructedFbc = `fb.1.${Date.now()}.${fbclid}`;
+              const now = Date.now();
+              const constructedFbc = `fb.1.${now}.${fbclid}`;
+              // Backup in localStorage
               localStorage.setItem('_fbc_constructed', constructedFbc);
+              // ALSO set as a real browser cookie — this is what Facebook CAPI checks first!
+              // 90 days expiry (matches Facebook's own pixel behavior)
+              const expiryDate = new Date(now + 90 * 24 * 60 * 60 * 1000).toUTCString();
+              document.cookie = `_fbc=${constructedFbc}; path=/; expires=${expiryDate}; SameSite=Lax`;
             }
 
             // --- FBP BACKUP in localStorage for Safari/iOS ITP ---
