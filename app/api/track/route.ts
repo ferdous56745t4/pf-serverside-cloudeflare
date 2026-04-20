@@ -42,7 +42,7 @@ export async function POST(req: Request) {
           custom_data: customData,
         },
       ],
-      ...(process.env.TEST_EVENT_CODE ? { test_event_code: process.env.TEST_EVENT_CODE } : {})
+      ...(process.env.FACEBOOK_TEST_EVENT_CODE ? { test_event_code: process.env.FACEBOOK_TEST_EVENT_CODE } : {})
     };
 
     const pixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID || process.env.FB_PIXEL_ID;
