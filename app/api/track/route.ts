@@ -48,8 +48,13 @@ export async function POST(req: Request) {
     const pixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID || process.env.FB_PIXEL_ID;
     const accessToken = process.env.FB_ACCESS_TOKEN;
 
+    // Diagnostic logging — shows up in Railway logs
+    console.log('[CAPI] eventName:', eventName);
+    console.log('[CAPI] pixelId:', pixelId ? `${pixelId.substring(0, 6)}...` : 'MISSING');
+    console.log('[CAPI] accessToken:', accessToken ? `${accessToken.substring(0, 8)}...` : 'MISSING');
+
     if (!pixelId || !accessToken) {
-      console.warn("FB_PIXEL_ID or FB_ACCESS_TOKEN missing. CAPI event not sent.");
+      console.error("[CAPI] FATAL: FB_PIXEL_ID or FB_ACCESS_TOKEN missing. CAPI event not sent.");
       return NextResponse.json({ success: false, message: "Server CAPI tokens not configured" }, { status: 500 });
     }
 
