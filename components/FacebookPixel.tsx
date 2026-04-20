@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 
 // Hardcoded as fallback — NEXT_PUBLIC_ vars must exist at BUILD time in Next.js
-const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || "2362496434235791";
+const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
 
 function PixelTracker() {
   const pathname = usePathname();
