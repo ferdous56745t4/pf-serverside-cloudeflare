@@ -4,12 +4,15 @@ import React, { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 
-function PixelTracker({ pixelId }: { pixelId: string }) {
+// Hardcoded as fallback — NEXT_PUBLIC_ vars must exist at BUILD time in Next.js
+const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || "793162033638985";
+
+function PixelTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Track PageView on route changes
+    // Fire PageView on route changes
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq("track", "PageView");
     }
@@ -19,16 +22,9 @@ function PixelTracker({ pixelId }: { pixelId: string }) {
 }
 
 export default function FacebookPixel() {
-  const pixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
-
-  if (!pixelId) {
-    console.error("Facebook Pixel ID is not defined in NEXT_PUBLIC_FB_PIXEL_ID. Pixel will not load.");
-    return null;
-  }
-
   return (
     <>
-      {/* 1. Inject Standard Meta Pixel Base Script */}
+      {/* Standard Meta Pixel Base Code */}
       <Script
         id="fb-pixel"
         strategy="afterInteractive"
@@ -42,14 +38,15 @@ export default function FacebookPixel() {
             t.src=v;s=b.getElementsByTagName(e)[0];
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${pixelId}');
+            fbq('init', '${FB_PIXEL_ID}');
+            fbq('track', 'PageView');
           `,
         }}
       />
-      
-      {/* 2. Track Route Changes Safely inside Suspense */}
+
+      {/* Track route changes in SPA navigation */}
       <Suspense fallback={null}>
-        <PixelTracker pixelId={pixelId} />
+        <PixelTracker />
       </Suspense>
     </>
   );
