@@ -42,21 +42,21 @@ export async function POST(req: Request) {
           custom_data: customData,
         },
       ],
-      // Let the worker inject the tokens, or explicitly send them
-      pixel_id: process.env.NEXT_PUBLIC_FB_PIXEL_ID,
-      access_token: process.env.FB_ACCESS_TOKEN,
-      // test_event_code: process.env.TEST_EVENT_CODE, // Uncomment and set env var to debug
+      ...(process.env.TEST_EVENT_CODE ? { test_event_code: process.env.TEST_EVENT_CODE } : {})
     };
 
-    const workerUrl = process.env.NEXT_PUBLIC_CLOUDFLARE_WORKER_URL;
+    const pixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID || process.env.FB_PIXEL_ID;
+    const accessToken = process.env.FB_ACCESS_TOKEN;
 
-    if (!workerUrl) {
-      console.warn("NEXT_PUBLIC_CLOUDFLARE_WORKER_URL is not defined. CAPI event not sent.");
-      return NextResponse.json({ success: false, message: "Worker URL not configured" }, { status: 500 });
+    if (!pixelId || !accessToken) {
+      console.warn("FB_PIXEL_ID or FB_ACCESS_TOKEN missing. CAPI event not sent.");
+      return NextResponse.json({ success: false, message: "Server CAPI tokens not configured" }, { status: 500 });
     }
 
-    // Fire and forget to CF Worker to keep Next.js UI snappy, using await for vercel edge constraints
-    const workerRes = await fetch(workerUrl, {
+    const fbGraphUrl = `https://graph.facebook.com/v18.0/${pixelId}/events?access_token=${accessToken}`;
+
+    // Post securely to Facebook
+    const fbRes = await fetch(fbGraphUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -64,12 +64,12 @@ export async function POST(req: Request) {
       body: JSON.stringify(capiPayload),
     });
 
-    if (!workerRes.ok) {
-        const errText = await workerRes.text();
-        throw new Error(`Cloudflare worker Error: ${workerRes.status} ${errText}`);
+    if (!fbRes.ok) {
+        const errText = await fbRes.text();
+        throw new Error(`Facebook CAPI Error: ${fbRes.status} ${errText}`);
     }
 
-    const result = await workerRes.json();
+    const result = await fbRes.json();
     return NextResponse.json({ success: true, result });
   } catch (error: any) {
     console.error("CAPI API Target Error:", error.message);

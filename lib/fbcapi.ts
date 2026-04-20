@@ -20,33 +20,19 @@ export const generateEventId = (): string => {
   
 export const firePixelEvent = (eventName: string, data: any, eventId: string) => {
     if (typeof window !== 'undefined') {
-        const dataLayer = (window as any).dataLayer = (window as any).dataLayer || [];
-        
-        // Push standard GA4 ecommerce payload for Purchases (for standard GTM setups)
-        if (eventName === 'Purchase') {
-            dataLayer.push({ ecommerce: null }); // Clear previous
-            dataLayer.push({
-                event: "purchase", // Standard GTM trigger name
-                ecommerce: {
-                    currency: data.currency,
-                    value: data.value,
-                    transaction_id: data.order_id || eventId,
-                    items: data.contents?.map((item: any) => ({
-                        item_id: item.id,
-                        item_name: data.content_name || 'Product',
-                        price: item.item_price,
-                        quantity: item.quantity
-                    }))
-                }
-            });
+        const fbq = (window as any).fbq;
+        if (typeof fbq === 'function') {
+            // Standard Events we track
+            const standardEvents = ['PageView', 'ViewContent', 'AddToCart', 'InitiateCheckout', 'Purchase', 'Lead', 'CompleteRegistration'];
+            
+            if (standardEvents.includes(eventName)) {
+                fbq('track', eventName, data, { eventID: eventId });
+            } else {
+                fbq('trackCustom', eventName, data, { eventID: eventId });
+            }
+        } else {
+            console.warn('fbq not found on window, event not fired natively:', eventName);
         }
-
-        // Exact match Custom Event push
-        dataLayer.push({
-            event: eventName,
-            ...data,
-            eventId: eventId
-        });
     }
 };
   
