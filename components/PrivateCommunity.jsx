@@ -1,12 +1,13 @@
 "use client"
 import React from 'react';
-import { Users, ArrowRight, Star, ThumbsUp, Facebook, Quote, BadgeCheck } from 'lucide-react';
+import { Users, ArrowRight, Star, ThumbsUp, Facebook, Quote, BadgeCheck, Lock, MessageSquare, TrendingUp, Shirt, Leaf, ShoppingBag } from 'lucide-react';
 import page1 from "@/public/fbpage-1.jpg"
 import page2 from "@/public/fbpage-2.jpg"
 import page3 from "@/public/fbpage-3.jpg"
 import page4 from "@/public/fbpage-4.jpg"
 import page5 from "@/public/fbpage-5.jpg"
 import page6 from "@/public/fbpage-6.jpg"
+import groupImage from "@/public/facebook-group.jpg"
 import Image from 'next/image';
 
 
@@ -129,10 +130,120 @@ const PrivateCommunity = () => {
           ))}
         </div>
 
+        {/* SECRET FACEBOOK GROUP SECTION */}
+        <div className="mt-16 mb-4">
+          {/* Section Label */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-red-50 border border-red-200 px-4 py-1.5 rounded-full mb-4">
+              <Lock size={14} className="text-red-600" />
+              <span className="text-red-700 font-bold text-xs uppercase tracking-wider">Secret Exclusive Group</span>
+            </div>
+            <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">
+              বইটি কিনলেই পাবেন{" "}
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
+                সিক্রেট গ্রুপে ইনভাইট
+              </span>
+            </h3>
+            <p className="text-slate-500 mt-2 text-sm md:text-base max-w-xl mx-auto">
+              যেখানে ৬০০+ উদ্যোক্তারা প্রতিদিন নেটওয়ার্ক করছেন, সমস্যার সমাধান খুঁজছেন, এবং একে অপরকে সাহায্য করছেন
+            </p>
+          </div>
+
+          {/* Main Group Card */}
+          <div className="max-w-3xl mx-auto">
+            <div className="relative rounded-3xl overflow-hidden border-2 border-blue-200 shadow-2xl shadow-blue-100/60 bg-white group hover:shadow-blue-200/70 hover:border-blue-400 transition-all duration-500">
+              
+              {/* Gradient top bar */}
+              <div className="h-1.5 w-full bg-linear-to-r from-blue-500 via-indigo-500 to-blue-600"></div>
+
+              <div className="flex flex-col md:flex-row">
+                {/* LEFT: Group screenshot */}
+                <div className="relative md:w-[55%] overflow-hidden">
+                  <Image
+                    src={groupImage}
+                    alt="F-COMMERCE UDDOKTA Official Group - Private group with 621 members"
+                    className="w-full h-full object-cover object-top group-hover:scale-[1.02] transition-transform duration-500"
+                    style={{ minHeight: "240px" }}
+                  />
+                  {/* Dark overlay at bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/50 to-transparent"></div>
+
+                  {/* Member badge - floating over image */}
+                  <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-xl border border-blue-100">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shrink-0">
+                      <Users size={16} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium leading-none">Active Members</p>
+                      <p className="text-xl font-black text-blue-700 leading-tight">৬২১+</p>
+                    </div>
+                  </div>
+
+                  {/* Private badge - top right */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full">
+                    <Lock size={11} />
+                    <span>Private Group</span>
+                  </div>
+                </div>
+
+                {/* RIGHT: Info panel */}
+                <div className="md:w-[45%] p-5 md:p-7 flex flex-col justify-between">
+                  <div>
+                    {/* Group name */}
+                    <div className="flex items-start gap-2 mb-4">
+                      <div className="w-8 h-8 shrink-0 bg-blue-600 rounded-lg flex items-center justify-center mt-0.5">
+                        <Facebook size={16} className="text-white" fill="white" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-slate-900 text-base leading-tight">F-COMMERCE UDDOKTA</h4>
+                        <p className="text-xs text-slate-400 font-medium">Official Group</p>
+                      </div>
+                    </div>
+
+                    {/* Benefits list */}
+                    <ul className="space-y-2.5 mb-5">
+                      {[
+                        { icon: <Shirt size={14} />, text: "পোশাক, অর্গানিক ফুড, ইলেকট্রনিক্স সব ক্যাটাগরির উদ্যোক্তারা" },
+                        { icon: <MessageSquare size={14} />, text: "সরাসরি আলোচনা ও সমস্যার সমাধান পাবেন" },
+                        { icon: <TrendingUp size={14} />, text: "বিজনেস টিপস, আইডিয়া ও স্ট্র্যাটেজি শেয়ার" },
+                        { icon: <Users size={14} />, text: "নেটওয়ার্কিং — পাশাপাশি বাড়বে আপনার ব্যবসাও" },
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-start gap-2.5">
+                          <span className="mt-0.5 w-5 h-5 shrink-0 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center">
+                            {item.icon}
+                          </span>
+                          <span className="text-sm text-slate-600 leading-snug">{item.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* Category tags */}
+                    <div className="flex flex-wrap gap-1.5 mb-5">
+                      {["Clothing", "Organic Food", "Electronics", "Jewelry", "Handicraft", "আরও..."].map((cat) => (
+                        <span key={cat} className="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Access note */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+                    <Lock size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700 font-semibold leading-snug">
+                      শুধুমাত্র বই অর্ডার করলেই পাবেন এই প্রাইভেট গ্রুপের এক্সক্লুসিভ ইনভাইটেশন লিংক
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* CTA SECTION */}
-        <div className="mt-5 text-center">
+        <div className="mt-10 text-center">
           <p className="text-lg md:text-xl font-semibold text-slate-800 mb-6">
-            আপনার পেজকেও কি <span className="text-blue-600">নেক্সট বিগ ব্র্যান্ড</span> হিসেবে গড়তে চান?
+            আপনার পেজকেও কি <span className="text-blue-600">নেক্সট বিগ ব্র্যান্ড</span> হিসেবে গড়তে চান?
           </p>
           
           <div className="flex flex-col items-center gap-4">
@@ -140,7 +251,7 @@ const PrivateCommunity = () => {
               href="#order" 
               className="group relative inline-flex items-center justify-center gap-3 bg-linear-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-bold py-4 px-10 rounded-full text-lg shadow-xl shadow-orange-500/20 transform hover:-translate-y-1 transition-all duration-300 w-full md:w-auto"
             >
-              <span>এখনই অর্ডার করে জয়েন করুন</span>
+              <span>এখনই অর্ডার করে গ্রুপে জয়েন করুন</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               
               {/* Button Shine Effect */}

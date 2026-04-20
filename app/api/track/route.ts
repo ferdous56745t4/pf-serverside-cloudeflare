@@ -12,7 +12,7 @@ const hashData = (data: string | null | undefined): string | undefined => {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { eventName, eventSourceUrl, userData = {}, customData = {}, eventId } = body;
+    const { eventName, eventSourceUrl, userData = {}, customData = {}, eventId, _prehashed = false } = body;
 
     // Get client IP
     const forwardedFor = req.headers.get('x-forwarded-for');
@@ -38,6 +38,11 @@ export async function POST(req: Request) {
       }
     }
 
+    // Build user_data: if client pre-hashed PII fields, pass them through directly.
+    // Otherwise, hash them here on the server (fallback for non-browser callers).
+    const buildUserField = (val: string | undefined) =>
+      _prehashed ? val : hashData(val);
+
     // Build the CAPI payload
     const capiPayload = {
       data: [
@@ -50,24 +55,22 @@ export async function POST(req: Request) {
           user_data: {
             client_ip_address: userData.client_ip_address || clientIp,
             client_user_agent: userData.client_user_agent || userAgent,
-            em: hashData(userData.em),
-            ph: hashData(userData.ph),
-            fn: hashData(userData.fn),
-            ln: hashData(userData.ln),
-            // Geo signals: real values from IP geolocation lookup
-            country: hashData(userData.country || 'bd'),
-            ...(geoCity ? { ct: hashData(geoCity) } : userData.ct ? { ct: hashData(userData.ct) } : {}),
-            ...(geoState ? { st: hashData(geoState) } : userData.st ? { st: hashData(userData.st) } : {}),
-            ...(userData.zp ? { zp: hashData(userData.zp) } : {}),
-            // Facebook cookie identifiers — NOT hashed, sent raw
+            em:         buildUserField(userData.em),
+            ph:         buildUserField(userData.ph),
+            fn:         buildUserField(userData.fn),
+            ln:         buildUserField(userData.ln),
+            // Geo signals: from client hash OR from IP geolocation (server-resolved)
+            country:    userData.country ?? (geoCity ? hashData('bd') : hashData('bd')),
+            ...(geoCity  ? { ct: hashData(geoCity)  } : userData.ct  ? { ct: userData.ct  } : {}),
+            ...(geoState ? { st: hashData(geoState) } : userData.st  ? { st: userData.st  } : {}),
+            ...(userData.zp ? { zp: buildUserField(userData.zp) } : {}),
+            // Not hashed — sent raw per Facebook spec
             fbc: userData.fbc,
             fbp: userData.fbp,
-            // External ID for cross-device matching — hashed
-            ...(userData.external_id ? { external_id: hashData(userData.external_id) } : {}),
+            ...(userData.external_id ? { external_id: buildUserField(userData.external_id) } : {}),
           },
           custom_data: {
             ...customData,
-            // Ensure delivery_category is always set for Purchase events
             ...(eventName === 'Purchase' ? { delivery_category: customData.delivery_category || 'home_delivery' } : {}),
           },
         },

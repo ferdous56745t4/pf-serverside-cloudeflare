@@ -22,6 +22,7 @@ const BookInside = dynamic(() => import("@/components/bookInside"));
 const HeroSction = dynamic(() => import("../hero/page"));
 const PageSwiper = dynamic(() => import("@/components/PageSwiper"));
 const PrivateCommunity = dynamic(() => import("@/components/PrivateCommunity"));
+const GroupReviews = dynamic(() => import("@/components/GroupReviews"));
 // const WhatsInside = dynamic(() => import("@/components/whatsInside"));
 
 
@@ -39,6 +40,7 @@ const HeaderSection = () => {
         <AllReaders />
       <BookVideo />
         <PrivateCommunity />
+        <GroupReviews />
         <BookInside />
         {/* <WhatsInside /> */}
 
