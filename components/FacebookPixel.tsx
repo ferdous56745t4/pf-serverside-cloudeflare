@@ -3,6 +3,7 @@
 import React, { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
+import { setFbcCookie } from "@/utils/fbParams";
 
 // Hardcoded as fallback — NEXT_PUBLIC_ vars must exist at BUILD time in Next.js
 const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || "2362496434235791";
@@ -12,6 +13,12 @@ function PixelTracker() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Capture fbclid from URL and store as _fbc cookie
+    const fbclid = searchParams.get("fbclid");
+    if (fbclid) {
+      setFbcCookie(fbclid);
+    }
+
     // Fire PageView on route changes
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq("track", "PageView");
