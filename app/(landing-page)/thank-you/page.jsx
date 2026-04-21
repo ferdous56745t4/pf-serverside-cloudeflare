@@ -30,7 +30,7 @@ function ThankYouContent() {
       trackedOrders.push(orderId);
       localStorage.setItem('tracked_orders', JSON.stringify(trackedOrders));
 
-      const totalValue = parseFloat(total);
+      const totalValue = parseFloat(total || "0");
       const shippingValue = parseFloat(shippingCost || "0");
       const itemPrice = parseFloat(price || "0");
       const itemQuantity = parseInt(quantity || "1", 10);
