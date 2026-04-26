@@ -409,21 +409,7 @@ const HeroSection = () => {
       } catch (e) {}
 
       // --- SEND CONFIRMATION SMS ---
-      try {
-        await fetch("/api/send-sms", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                name: formData.name,
-                phone: formData.number,
-                orderId: result.orderId,
-                dbId: result.mongoResult?.insertedId || result.insertedId || result._id // Corrected path to DB ID
-            })
-        });
-      } catch (smsErr) {
-        console.error("SMS Send Error (Client-side trigger):", smsErr);
-        // Don't block redirect on SMS failure
-      }
+      // Removed redundant client-side trigger as SMS is sent by backend in /api/orders
 
       const params = new URLSearchParams({
         orderId: result.orderId.toString(),
